@@ -1,6 +1,6 @@
 {
-	"name": "sequelize-temporalize",
-	"version": "2.0.1",
+  "name": "sequelize-temporalize",
+  "version": "2.0.2",
   "description": "Temporal tables for Sequelize",
   "main": "index.js",
   "directories": {
@@ -20,7 +20,7 @@
     "sql11",
     "undo",
     "paranoid",
-	"historical"
+    "historical"
   ],
   "author": "greenify <greenify@notsharingmy.info> (https://github.com/greenify)",
   "license": "MIT",
