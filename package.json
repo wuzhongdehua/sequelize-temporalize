@@ -1,5 +1,5 @@
 {
-	"name": "sequelize-temporal",
+	"name": "sequelize-temporalize",
 	"version": "2.0.1",
   "description": "Temporal tables for Sequelize",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bonaval/sequelize-temporal.git"
+    "url": "git+https://github.com/JamesJansson/sequelize-temporalize.git"
   },
   "keywords": [
     "sequelize",
@@ -25,9 +25,9 @@
   "author": "greenify <greenify@notsharingmy.info> (https://github.com/greenify)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/bonaval/sequelize-temporal/issues"
+    "url": "https://github.com/JamesJansson/sequelize-temporalize/issues"
   },
-  "homepage": "https://github.com/opencollective/sequelize-historical#readme",
+  "homepage": "https://github.com/JamesJansson/sequelize-temporalize#readme",
   "dependencies": {
     "lodash": "^4.17.11"
   },

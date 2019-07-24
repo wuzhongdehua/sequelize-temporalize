@@ -2,7 +2,9 @@ Temporal tables for Sequelize
 =============================
 (aka "Historical records")
 
-[![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal)
+This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. the aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
+
+<!-- [![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal) -->
 
 
 What is it?
@@ -25,17 +27,17 @@ Installation
 ------------
 
 ```
-npm install sequelize-temporal
+npm install sequelize-temporalize
 ```
 
 How to use
 ----------
 
-### 1) Import `sequelize-temporal`
+### 1) Import `sequelize-temporalize`
 
 ```
 var Sequelize = require('sequelize');
-var Temporal = require('sequelize-temporal');
+var Temporal = require('sequelize-temporalize');
 ```
 
 Create a sequelize instance and your models, e.g.
@@ -47,13 +49,13 @@ var sequelize = new Sequelize('', '', '', {
 });
 ```
 
-### 2) Add the *temporal* feature to your models
+### 2) Add the *temporalize* feature to your models
 
 ```
 var User = Temporal(sequelize.define('User'), sequelize);
 ```
 
-The output of `temporal` is its input model, so assigning it's output to your
+The output of `Temporal` is its input model, so assigning it's output to your
 Model is not necessary, hence it's just the lazy version of:
 
 ```
@@ -75,14 +77,14 @@ whereas the options are listed here (with default value).
   /* runs the insert within the sequelize hook chain, disable
   for increased performance without warranties */
   blocking: true,
-   /* By default sequelize-temporal persist only changes, and saves the previous state in the history table.
-  The "full" option saves all transactions into the temporal database
+   /* By default sequelize-temporalize persist only changes, and saves the previous state in the history table.
+  The "full" option saves all transactions into the temporalize database
   (i.e. this includes the latest state.)
    This allows to only query the history table to get the full history of an entity.
   */
   full: false,
   /* 
-  By default sequelize-temporal will add 'History' to the history Model name and 'Histories' to the history table.
+  By default sequelize-temporalize will add 'History' to the history Model name and 'Histories' to the history table.
   By updating the modelSuffix value, you can decide what the naming will be.
   The value will be appended to the history Model name and its plural will be appended to the history tablename.
 
@@ -93,7 +95,7 @@ whereas the options are listed here (with default value).
   */
   modelSuffix: 'History',
   /* 
-  By default sequelize-temporal will create the history table without associations.
+  By default sequelize-temporalize will create the history table without associations.
   However, setting this flag to true, you can keep association between the history table and the table with the latest value (origin).
 
   NOTE: THIS DOES NOT WORK IF YOU ARE USING A SEPARATE DB FOR THE HISTORICAL TABLES. IN THAT CASE, KEEP THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
