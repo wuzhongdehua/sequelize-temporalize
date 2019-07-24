@@ -2,7 +2,7 @@ Temporal tables for Sequelize
 =============================
 (aka "Historical records")
 
-This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. the aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
+This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. The aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
 
 <!-- [![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal) -->
 

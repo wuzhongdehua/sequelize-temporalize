@@ -1,4 +1,4 @@
-declare module 'sequelize-temporal' { 
+declare module 'sequelize-temporalize' { 
 	interface Options { 
 		blocking?:boolean,
 		full?:boolean,
