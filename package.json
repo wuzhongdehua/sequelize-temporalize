@@ -1,6 +1,6 @@
 {
   "name": "sequelize-temporalize",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Temporal tables for Sequelize",
   "main": "index.js",
   "directories": {
