@@ -76,12 +76,15 @@ var Temporal = function(model, sequelize, temporalOptions) {
   var historyOptions = _.assign({}, modelOptions, historyOwnOptions);
 
   // We want to delete indexes that have unique constraint
-  var indexes = historyOptions.indexes;
+  var indexes = _.cloneDeep(historyOptions.indexes);
   if (Array.isArray(indexes)) {
     historyOptions.indexes = indexes.filter(function(index) {
       return !index.unique && index.type != 'UNIQUE';
     });
   }
+  historyOptions.indexes.forEach(indexElement => {
+    indexElement.name += '_history';
+  });
 
   var modelHistory = sequelize.define(
     historyName,
