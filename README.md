@@ -1,37 +1,33 @@
-Temporal tables for Sequelize
-=============================
+# Temporal tables for Sequelize
+
 (aka "Historical records")
 
 This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. The aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
 
 <!-- [![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal) -->
 
+## What is it?
 
-What is it?
------------
-
-Temporal tables maintain __historical versions__ of data. Modifying operations (UPDATE, DELETE) on these tables don't cause permanent changes to entries, but create new versions of them. Hence this might be used to:
+Temporal tables maintain **historical versions** of data. Modifying operations (UPDATE, DELETE) on these tables don't cause permanent changes to entries, but create new versions of them. Hence this might be used to:
 
 - log changes (security/auditing)
 - undo functionalities
 - track interactions (customer support)
 
-Under the hood a history table with the same structure, but without constraints is created (unless option __addAssociation__ is set to __true__).
+Under the hood a history table with the same structure, but without constraints is created (unless option **addAssociation** is set to **true**).
 
 The normal singular/plural naming scheme in Sequelize is used:
 
 - model name: `modelName + History`
 - table name: `modelName + Histories`
 
-Installation
-------------
+## Installation
 
 ```
 npm install sequelize-temporalize
 ```
 
-How to use
-----------
+## How to use
 
 ### 1) Import `sequelize-temporalize`
 
@@ -49,7 +45,7 @@ var sequelize = new Sequelize('', '', '', {
 });
 ```
 
-### 2) Add the *temporalize* feature to your models
+### 2) Add the _temporalize_ feature to your models
 
 ```
 var User = Temporal(sequelize.define('User'), sequelize);
@@ -63,8 +59,7 @@ var User = sequelize.define('User', {.types.}, {.options.}); // Sequelize Docu
 Temporal(User, sequelize);
 ```
 
-Options
--------
+## Options
 
 The default syntax for `Temporal` is:
 
@@ -83,18 +78,18 @@ whereas the options are listed here (with default value).
    This allows to only query the history table to get the full history of an entity.
   */
   full: false,
-  /* 
+  /*
   By default sequelize-temporalize will add 'History' to the history Model name and 'Histories' to the history table.
   By updating the modelSuffix value, you can decide what the naming will be.
   The value will be appended to the history Model name and its plural will be appended to the history tablename.
 
   examples for table User:
-	modelSuffix: '_Hist'  --> History Model Name: User_Hist  --> History Table Name: User_Hists  
+	modelSuffix: '_Hist'  --> History Model Name: User_Hist  --> History Table Name: User_Hists
 	modelSuffix: 'Memory'  --> History Model Name: UserMemory  --> History Table Name: UserMemories
 	modelSuffix: 'Pass'  --> History Model Name: UserPass  --> History Table Name: UserPasses
   */
   modelSuffix: 'History',
-  /* 
+  /*
   By default sequelize-temporalize will create the history table without associations.
   However, setting this flag to true, you can keep association between the history table and the table with the latest value (origin).
 
@@ -122,7 +117,7 @@ whereas the options are listed here (with default value).
 	User <-> Creation: 1 to many
 
 	User.getCreations() exists (1 to many)
-	Creation.getUser() exists (1 to 1)	
+	Creation.getUser() exists (1 to 1)
 
 	User <-> UserHistories: 1 to many
 
@@ -154,8 +149,7 @@ whereas the options are listed here (with default value).
   allowTransactions: true
 ```
 
-Details
---------
+## Details
 
 @See: https://wiki.postgresql.org/wiki/SQL2011Temporal
 
@@ -171,8 +165,7 @@ Triggers for storing old versions of rows to history table are inspired by refer
 
 If you only use Postgres, you might want to have a look at the [Temporal Table](https://github.com/arkhipov/temporal_tables) extension.
 
-License
--------
+## License
 
 The MIT License (MIT)
 
