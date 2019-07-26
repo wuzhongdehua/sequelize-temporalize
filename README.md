@@ -162,6 +162,15 @@ History table stores historical versions of rows, which are inserted by triggers
 
 Triggers for storing old versions of rows to history table are inspired by referential integrity triggers. They are fired for each row before UPDATE and DELETE (within the same transaction)
 
+### IMPORTANT
+
+If you use `destroy` methods it is very important that you either:
+
+1. Use `paranoid: true` on all models you plan to use destroy on OR
+2. Use `individualHooks: true` on all destroy commands.
+
+It is best to use `paranoid: true` because that means it will give the most accurate time at which the element was destroyed.
+
 ### Notes
 
 If you only use Postgres, you might want to have a look at the [Temporal Table](https://github.com/arkhipov/temporal_tables) extension.
