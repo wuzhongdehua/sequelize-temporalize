@@ -103,8 +103,12 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   // we already get the updatedAt timestamp from our models
   var insertHook = function(obj, options) {
-    var dataValues =
-      (!temporalOptions.full && obj._previousDataValues) || obj.dataValues;
+    var dataValues = _.cloneDeep(
+      (!temporalOptions.full && obj._previousDataValues) || obj.dataValues
+    );
+    if (options.deleteOperation) {
+      dataValues[temporalOptions.deletedColumnName] = true;
+    }
     var historyRecord = modelHistory.create(dataValues, {
       transaction: temporalOptions.allowTransactions
         ? options.transaction
@@ -132,6 +136,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
             if (options.deleteOperation) {
               hits.forEach(ele => {
                 ele[temporalOptions.deletedColumnName] = true;
+                // If paranoid is true, use the deleted value
                 ele.archivedAt = ele.deletedAt || Date.now();
               });
             }
@@ -198,7 +203,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
     insertHook(obj, options);
   };
 
-  const deleteBulkHook = options => {
+  const afterDeleteBulkHook = options => {
+    options.deleteOperation = true;
+    insertBulkHook(options);
+  };
+  const beforeDeleteBulkHook = options => {
     options.deleteOperation = true;
     insertBulkHook(options);
   };
@@ -210,15 +219,15 @@ var Temporal = function(model, sequelize, temporalOptions) {
     model.addHook('afterUpdate', insertHook);
     model.addHook('afterBulkUpdate', insertBulkHook);
     model.addHook('afterDestroy', deleteHook);
-    model.addHook('afterBulkDestroy', deleteBulkHook);
+    model.addHook('afterBulkDestroy', afterDeleteBulkHook);
     model.addHook('afterRestore', insertHook);
   } else {
     model.addHook('beforeUpdate', insertHook);
-    model.addHook('beforeDestroy', deleteBulkHook);
+    model.addHook('beforeDestroy', deleteHook);
   }
 
   model.addHook('beforeBulkUpdate', insertBulkHook);
-  model.addHook('beforeBulkDestroy', deleteBulkHook);
+  model.addHook('beforeBulkDestroy', beforeDeleteBulkHook);
 
   var readOnlyHook = function() {
     throw new Error(
