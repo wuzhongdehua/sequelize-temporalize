@@ -5,7 +5,9 @@ var temporalDefaultOptions = {
   // for increased performance
   blocking: true,
   full: false,
-  modelSuffix: 'History',
+  modelSuffix: 'Temporalize',
+  indexSuffix: '_temporalize',
+  deletedColumnName: 'temporalizeDeletedAt',
   addAssociations: false,
   allowTransactions: true
 };
@@ -28,6 +30,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
       type: Sequelize.DATE,
       allowNull: false,
       defaultValue: Sequelize.NOW
+    },
+    [temporalOptions.deletedColumnName]: {
+      type: Sequelize.DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: null
     }
   };
 
@@ -83,7 +90,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     });
   }
   historyOptions.indexes.forEach(indexElement => {
-    indexElement.name += '_history';
+    indexElement.name += temporalOptions.indexSuffix;
   });
 
   var modelHistory = sequelize.define(
@@ -115,6 +122,14 @@ var Temporal = function(model, sequelize, temporalOptions) {
         .then(function(hits) {
           if (hits) {
             hits = _.map(hits, 'dataValues');
+            if (options.deleteOperation) {
+              hits.forEach(ele => {
+                ele[temporalOptions.deletedColumnName] = true;
+              });
+            }
+            hits.forEach(ele => {
+              ele.archivedAt = ele.updatedAt;
+            });
             return modelHistory.bulkCreate(hits, {
               transaction: temporalOptions.allowTransactions
                 ? options.transaction
@@ -173,22 +188,32 @@ var Temporal = function(model, sequelize, temporalOptions) {
     return Promise.resolve('Temporal associations established');
   };
 
+  const deleteHook = (obj, options) => {
+    options.deleteOperation = true;
+    insertHook(obj, options);
+  };
+
+  const deleteBulkHook = options => {
+    options.deleteOperation = true;
+    insertBulkHook(options);
+  };
+
   // use `after` to be nonBlocking
   // all hooks just create a copy
   if (temporalOptions.full) {
     model.addHook('afterCreate', insertHook);
     model.addHook('afterUpdate', insertHook);
     model.addHook('afterBulkUpdate', insertBulkHook);
-    model.addHook('afterDestroy', insertHook);
-    model.addHook('afterBulkDestroy', insertBulkHook);
+    model.addHook('afterDestroy', deleteHook);
+    model.addHook('afterBulkDestroy', deleteBulkHook);
     model.addHook('afterRestore', insertHook);
   } else {
     model.addHook('beforeUpdate', insertHook);
-    model.addHook('beforeDestroy', insertHook);
+    model.addHook('beforeDestroy', deleteBulkHook);
   }
 
   model.addHook('beforeBulkUpdate', insertBulkHook);
-  model.addHook('beforeBulkDestroy', insertBulkHook);
+  model.addHook('beforeBulkDestroy', deleteBulkHook);
 
   var readOnlyHook = function() {
     throw new Error(
