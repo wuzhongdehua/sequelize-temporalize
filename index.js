@@ -7,7 +7,7 @@ var temporalDefaultOptions = {
   full: false,
   modelSuffix: 'Temporalize',
   indexSuffix: '_temporalize',
-  deletedColumnName: 'temporalizeDeletedAt',
+  deletedColumnName: 'temporalizeDeleted',
   addAssociations: false,
   allowTransactions: true
 };
@@ -118,18 +118,23 @@ var Temporal = function(model, sequelize, temporalOptions) {
   var insertBulkHook = function(options) {
     if (!options.individualHooks) {
       var queryAll = model
-        .findAll({ where: options.where, transaction: options.transaction })
+        .findAll({
+          where: options.where,
+          transaction: options.transaction,
+          paranoid: false
+        })
         .then(function(hits) {
           if (hits) {
             hits = _.map(hits, 'dataValues');
-            if (options.deleteOperation) {
-              hits.forEach(ele => {
-                ele[temporalOptions.deletedColumnName] = true;
-              });
-            }
             hits.forEach(ele => {
               ele.archivedAt = ele.updatedAt;
             });
+            if (options.deleteOperation) {
+              hits.forEach(ele => {
+                ele[temporalOptions.deletedColumnName] = true;
+                ele.archivedAt = ele.deletedAt || Date.now();
+              });
+            }
             return modelHistory.bulkCreate(hits, {
               transaction: temporalOptions.allowTransactions
                 ? options.transaction
