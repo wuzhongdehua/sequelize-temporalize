@@ -5,8 +5,8 @@ var temporalDefaultOptions = {
   // for increased performance
   blocking: true,
   full: false,
-  modelSuffix: 'Temporalize',
-  indexSuffix: '_temporalize',
+  modelSuffix: 'History',
+  indexSuffix: '_history',
   deletedColumnName: 'temporalizeDeleted',
   addAssociations: false,
   allowTransactions: true
