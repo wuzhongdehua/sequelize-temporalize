@@ -21,9 +21,10 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   var historyOwnAttrs = {
     hid: {
-      type: Sequelize.BIGINT,
+      type: Sequelize.DataTypes.UUID,
+      defaultValue: Sequelize.DataTypes.UUIDV4,
       primaryKey: true,
-      autoIncrement: true,
+      // autoIncrement: true,
       unique: true
     },
     archivedAt: {
