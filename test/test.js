@@ -128,7 +128,7 @@ describe('Read-only API', function() {
   //each creation has 3 tags
   //user has 2 creations
   //creation has 1 event
-  //tags,crestions,user,events are renamed 3 times to generate 3 history data
+  //tags,creations,user,events are renamed 3 times to generate 3 history data
   //1 tag is removed and re-added to a creation to create 1 history entry in the CreationTags table
   function dataCreate() {
     const tag = sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
@@ -352,7 +352,7 @@ describe('Read-only API', function() {
     // wrapped, chainable promise
     return function(obj) {
       return modelHistory.count(opts).then(count => {
-        assert.equal(n, count, 'history entries');
+        assert.equal(n, count, 'history entries ' + modelHistory.name);
         return obj;
       });
     };
