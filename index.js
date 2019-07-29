@@ -200,16 +200,16 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   const deleteHook = (obj, options) => {
     options.deleteOperation = true;
-    insertHook(obj, options);
+    return insertHook(obj, options);
   };
 
   const afterDeleteBulkHook = options => {
     options.deleteOperation = true;
-    insertBulkHook(options);
+    return insertBulkHook(options);
   };
   const beforeDeleteBulkHook = options => {
     options.deleteOperation = true;
-    insertBulkHook(options);
+    return insertBulkHook(options);
   };
 
   // use `after` to be nonBlocking
