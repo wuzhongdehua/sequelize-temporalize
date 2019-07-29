@@ -4,7 +4,7 @@ var temporalDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
   // for increased performance
   blocking: true,
-  full: false,
+  // full: false,
   modelSuffix: 'History',
   indexSuffix: '_history',
   deletedColumnName: 'temporalizeDeleted',
@@ -105,7 +105,8 @@ var Temporal = function(model, sequelize, temporalOptions) {
   // we already get the updatedAt timestamp from our models
   var insertHook = function(obj, options) {
     var dataValues = _.cloneDeep(
-      (!temporalOptions.full && obj._previousDataValues) || obj.dataValues
+      // (!temporalOptions.full && obj._previousDataValues) ||
+      obj.dataValues
     );
     dataValues.archivedAt = obj.dataValues.updatedAt;
     if (options.deleteOperation) {
@@ -218,20 +219,20 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   // use `after` to be nonBlocking
   // all hooks just create a copy
-  if (temporalOptions.full) {
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterUpdate', insertHook);
-    model.addHook('afterBulkUpdate', insertBulkHook);
-    model.addHook('afterDestroy', deleteHook);
-    model.addHook('afterBulkDestroy', afterDeleteBulkHook);
-    model.addHook('afterRestore', insertHook);
-  } else {
-    model.addHook('beforeUpdate', insertHook);
-    model.addHook('beforeDestroy', deleteHook);
-  }
+  // if (temporalOptions.full) {
+  model.addHook('afterCreate', insertHook);
+  model.addHook('afterUpdate', insertHook);
+  model.addHook('afterBulkUpdate', insertBulkHook);
+  model.addHook('afterDestroy', deleteHook);
+  model.addHook('afterBulkDestroy', afterDeleteBulkHook);
+  model.addHook('afterRestore', insertHook);
+  // } else {
+  // model.addHook('beforeUpdate', insertHook);
+  // model.addHook('beforeDestroy', deleteHook);
+  // }
 
-  model.addHook('beforeBulkUpdate', insertBulkHook);
-  model.addHook('beforeBulkDestroy', beforeDeleteBulkHook);
+  // model.addHook('beforeBulkUpdate', insertBulkHook);
+  // model.addHook('beforeBulkDestroy', beforeDeleteBulkHook);
 
   var readOnlyHook = function() {
     throw new Error(
