@@ -106,8 +106,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
     var dataValues = _.cloneDeep(
       (!temporalOptions.full && obj._previousDataValues) || obj.dataValues
     );
+    dataValues.archivedAt = obj.dataValues.updatedAt;
     if (options.deleteOperation) {
       dataValues[temporalOptions.deletedColumnName] = true;
+      // If paranoid is true, use the deleted value
+      dataValues.archivedAt = obj.dataValues.deletedAt || Date.now();
     }
     var historyRecord = modelHistory.create(dataValues, {
       transaction: temporalOptions.allowTransactions
