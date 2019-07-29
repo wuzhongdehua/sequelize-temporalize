@@ -104,27 +104,32 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   // we already get the updatedAt timestamp from our models
   var insertHook = function(obj, options) {
-    var dataValues = _.cloneDeep(
-      // (!temporalOptions.full && obj._previousDataValues) ||
-      obj.dataValues
-    );
-    dataValues.archivedAt = obj.dataValues.updatedAt;
-    if (options.restoreOperation) {
-      dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
-    }
-    if (options.destroyOperation) {
-      dataValues[temporalOptions.deletedColumnName] = true;
-      // If paranoid is true, use the deleted value
-      dataValues.archivedAt = obj.dataValues.deletedAt || Date.now();
-    }
-    var historyRecord = modelHistory.create(dataValues, {
-      transaction: temporalOptions.allowTransactions
-        ? options.transaction
-        : null
-    });
-    if (temporalOptions.blocking) {
-      return historyRecord;
-    }
+    return model
+      .findOne({
+        where: options.where,
+        transaction: options.transaction,
+        paranoid: false
+      })
+      .then(function(hit) {
+        var dataValues = _.cloneDeep(hit.dataValues);
+        dataValues.archivedAt = hit.dataValues.updatedAt;
+        if (options.restoreOperation) {
+          dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+        }
+        if (options.destroyOperation) {
+          dataValues[temporalOptions.deletedColumnName] = true;
+          // If paranoid is true, use the deleted value
+          dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
+        }
+        var historyRecord = modelHistory.create(dataValues, {
+          transaction: temporalOptions.allowTransactions
+            ? options.transaction
+            : null
+        });
+        if (temporalOptions.blocking) {
+          return historyRecord;
+        }
+      });
   };
 
   var insertBulkHook = function(options) {
