@@ -221,9 +221,9 @@ var Temporal = function(model, sequelize, temporalOptions) {
     return insertBulkHook(options);
   };
 
-  const afterRestoreHook = options => {
+  const afterRestoreHook = (obj, options) => {
     options.restoreOperation = true;
-    return insertHook(options);
+    return insertHook(obj, options);
   };
 
   const afterBulkRestoreHook = options => {
