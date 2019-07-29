@@ -138,6 +138,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
             hits.forEach(ele => {
               ele.archivedAt = ele.updatedAt;
             });
+            if (options.restoreOperation) {
+              hits.forEach(ele => {
+                ele.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+              });
+            }
             if (options.deleteOperation) {
               hits.forEach(ele => {
                 ele[temporalOptions.deletedColumnName] = true;
@@ -217,6 +222,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
     return insertBulkHook(options);
   };
 
+  const afterBulkRestore = options => {
+    options.restoreOperation = true;
+    return insertBulkHook(options);
+  };
+
   // use `after` to be nonBlocking
   // all hooks just create a copy
   // if (temporalOptions.full) {
@@ -225,7 +235,8 @@ var Temporal = function(model, sequelize, temporalOptions) {
   model.addHook('afterBulkUpdate', insertBulkHook);
   model.addHook('afterDestroy', deleteHook);
   model.addHook('afterBulkDestroy', afterDeleteBulkHook);
-  model.addHook('afterRestore', insertHook);
+  // model.addHook('afterRestore', insertHook);
+  model.addHook('afterBulkRestore', afterBulkRestore);
   // } else {
   // model.addHook('beforeUpdate', insertHook);
   // model.addHook('beforeDestroy', deleteHook);
