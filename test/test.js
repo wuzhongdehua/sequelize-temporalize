@@ -74,27 +74,49 @@ describe('Read-only API', function() {
     );
     const Event = sequelize.define(
       'Event',
-      { name: Sequelize.TEXT, creation: Sequelize.INTEGER },
+      {
+        name: Sequelize.TEXT,
+        creation: Sequelize.INTEGER
+      },
       { paranoid: paranoid || false }
     );
     const CreationTag = sequelize.define(
       'CreationTag',
-      { creation: Sequelize.INTEGER, tag: Sequelize.INTEGER },
+      {
+        creation: Sequelize.INTEGER,
+        tag: Sequelize.INTEGER
+      },
       { paranoid: paranoid || false }
     );
 
     //Associate models
 
     //1.* with 2 association to same table
-    User.hasMany(Creation, { foreignKey: 'user', as: 'creatorCreations' });
-    User.hasMany(Creation, { foreignKey: 'user2', as: 'updatorCreations' });
+    User.hasMany(Creation, {
+      foreignKey: 'user',
+      as: 'creatorCreations'
+    });
+    User.hasMany(Creation, {
+      foreignKey: 'user2',
+      as: 'updatorCreations'
+    });
 
-    Creation.belongsTo(User, { foreignKey: 'user', as: 'createUser' });
-    Creation.belongsTo(User, { foreignKey: 'user2', as: 'updateUser' });
+    Creation.belongsTo(User, {
+      foreignKey: 'user',
+      as: 'createUser'
+    });
+    Creation.belongsTo(User, {
+      foreignKey: 'user2',
+      as: 'updateUser'
+    });
 
     //1.1
-    Event.belongsTo(Creation, { foreignKey: 'creation' });
-    Creation.hasOne(Event, { foreignKey: 'creation' });
+    Event.belongsTo(Creation, {
+      foreignKey: 'creation'
+    });
+    Creation.hasOne(Event, {
+      foreignKey: 'creation'
+    });
 
     //*.*
     Tag.belongsToMany(Creation, {
@@ -119,9 +141,13 @@ describe('Read-only API', function() {
       options
     );
 
-    return sequelize
-      .sync({ force: true })
-      .then(s => (separate == true ? sequelizeHist.sync({ force: true }) : s));
+    return sequelize.sync({ force: true }).then(s =>
+      separate == true
+        ? sequelizeHist.sync({
+            force: true
+          })
+        : s
+    );
   }
 
   //Adding 3 tags, 2 creations, 2 events, 2 user
@@ -219,7 +245,10 @@ describe('Read-only API', function() {
 
     const event = creation
       .then(c =>
-        sequelize.models.Event.create({ name: 'event01', creation: c.id })
+        sequelize.models.Event.create({
+          name: 'event01',
+          creation: c.id
+        })
       )
       .then(e => {
         e.name = 'event01 renamed';
@@ -233,7 +262,10 @@ describe('Read-only API', function() {
 
     const event2 = creation2
       .then(c =>
-        sequelize.models.Event.create({ name: 'event02', creation: c.id })
+        sequelize.models.Event.create({
+          name: 'event02',
+          creation: c.id
+        })
       )
       .then(e => {
         e.name = 'event02 renamed';
@@ -333,11 +365,16 @@ describe('Read-only API', function() {
   }
 
   function freshDBWithSeparateHistoryDB() {
-    return newDB(false, { allowTransactions: false, test: { separate: true } });
+    return newDB(false, {
+      allowTransactions: false,
+      test: { separate: true }
+    });
   }
 
   function freshDBWithAssociations() {
-    return newDB(false, { addAssociations: true });
+    return newDB(false, {
+      addAssociations: true
+    });
   }
 
   function freshDBWithFullModeAndParanoid() {
@@ -345,7 +382,9 @@ describe('Read-only API', function() {
   }
 
   function freshDBWithSuffixEndingWithT() {
-    return newDB(false, { modelSuffix: '_Hist' });
+    return newDB(false, {
+      modelSuffix: '_Hist'
+    });
   }
 
   function assertCount(modelHistory, n, opts) {
@@ -358,6 +397,9 @@ describe('Read-only API', function() {
     };
   }
 
+  // test();
+
+  // function test() {
   describe('Separate DB Tests', function() {
     beforeEach(freshDBWithSeparateHistoryDB);
 
@@ -415,7 +457,10 @@ describe('Read-only API', function() {
             .then(() =>
               sequelize.models.User.update(
                 { name: 'updated-foo' },
-                { where: {}, transaction: t }
+                {
+                  where: {},
+                  transaction: t
+                }
               )
             )
             .then(assertCount(sequelizeHist.models.UserHistory, 2))
@@ -428,7 +473,9 @@ describe('Read-only API', function() {
       return sequelize
         .transaction()
         .then(transaction => {
-          var options = { transaction: transaction };
+          var options = {
+            transaction: transaction
+          };
 
           return sequelize.models.User.create({ name: 'test' }, options)
             .then(user => user.destroy(options))
@@ -1074,7 +1121,10 @@ describe('Read-only API', function() {
             .then(() =>
               sequelize.models.User.update(
                 { name: 'updated-foo' },
-                { where: {}, transaction: t }
+                {
+                  where: {},
+                  transaction: t
+                }
               )
             )
             .then(assertCount(sequelize.models.UserHistory, 2, opts))
@@ -1186,7 +1236,9 @@ describe('Read-only API', function() {
     beforeEach(freshDB);
     it("shouldn't delete instance methods", function() {
       Fruit = Historical(
-        sequelize.define('Fruit', { name: Sequelize.TEXT }),
+        sequelize.define('Fruit', {
+          name: Sequelize.TEXT
+        }),
         sequelize
       );
       Fruit.prototype.sayHi = () => {
@@ -1257,7 +1309,11 @@ describe('Read-only API', function() {
 
     it('onUpdate: should store the new version to the historyDB', function() {
       return sequelize.models.User.create({ name: 'test' })
-        .then(user => user.update({ name: 'renamed' }))
+        .then(user =>
+          user.update({
+            name: 'renamed'
+          })
+        )
         .then(() => sequelize.models.UserHistory.findAll())
         .then(histories => {
           assert.equal(histories.length, 2, 'two entries in DB');
@@ -1268,7 +1324,11 @@ describe('Read-only API', function() {
 
     it('onDelete: should store the previous version to the historyDB', function() {
       return sequelize.models.User.create({ name: 'test' })
-        .then(user => user.update({ name: 'renamed' }))
+        .then(user =>
+          user.update({
+            name: 'renamed'
+          })
+        )
         .then(user => user.destroy())
         .then(() => sequelize.models.UserHistory.findAll())
         .then(histories => {
@@ -1304,7 +1364,9 @@ describe('Read-only API', function() {
       return sequelize
         .transaction()
         .then(transaction => {
-          var options = { transaction: transaction };
+          var options = {
+            transaction: transaction
+          };
 
           return sequelize.models.User.create({ name: 'test' }, options)
             .then(user => user.destroy(options))
@@ -1314,4 +1376,5 @@ describe('Read-only API', function() {
         .then(assertCount(sequelize.models.UserHistory, 0));
     });
   });
+  // }
 });
