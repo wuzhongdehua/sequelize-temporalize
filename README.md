@@ -2,7 +2,7 @@
 
 (aka "Historical records")
 
-This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. The aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
+This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes and major changes merged in. The project is now a substantial divergence from [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), so it is no longer interchangeable.
 
 <!-- [![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal) -->
 
@@ -41,8 +41,8 @@ Create a sequelize instance and your models, e.g.
 
 ```
 var sequelize = new Sequelize('', '', '', {
-	dialect: 'sqlite',
-	storage: __dirname + '/.test.sqlite'
+  dialect: 'sqlite',
+  storage: __dirname + '/.test.sqlite'
 });
 ```
 
@@ -59,6 +59,10 @@ Model is not necessary, hence it's just the lazy version of:
 var User = sequelize.define('User', {.types.}, {.options.}); // Sequelize Docu
 Temporal(User, sequelize);
 ```
+
+## IMPORTANT NOTE
+
+If you would like to keep track of deletes in the history table, you MUST use the `paranoid: true` option when creating the original table.
 
 ## Options
 
@@ -85,9 +89,9 @@ whereas the options are listed here (with default value).
   The value will be appended to the history Model name and its plural will be appended to the history tablename.
 
   examples for table User:
-	modelSuffix: '_Hist'  --> History Model Name: User_Hist  --> History Table Name: User_Hists
-	modelSuffix: 'Memory'  --> History Model Name: UserMemory  --> History Table Name: UserMemories
-	modelSuffix: 'Pass'  --> History Model Name: UserPass  --> History Table Name: UserPasses
+  modelSuffix: '_Hist'  --> History Model Name: User_Hist  --> History Table Name: User_Hists
+  modelSuffix: 'Memory'  --> History Model Name: UserMemory  --> History Table Name: UserMemories
+  modelSuffix: 'Pass'  --> History Model Name: UserPass  --> History Table Name: UserPasses
   */
   modelSuffix: 'History',
   /*
@@ -97,10 +101,10 @@ whereas the options are listed here (with default value).
   NOTE: THIS DOES NOT WORK IF YOU ARE USING A SEPARATE DB FOR THE HISTORICAL TABLES. IN THAT CASE, KEEP THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
 
   example for table User:
-	  model: 'User'
-	  history model: 'UserHistories'
-	  --> This would add function User.getUserHistories() to return all history entries for that user entry.
-	  --> This would add function UserHistories.getUser() to get the original user from an history.
+    model: 'User'
+    history model: 'UserHistories'
+    --> This would add function User.getUserHistories() to return all history entries for that user entry.
+    --> This would add function UserHistories.getUser() to get the original user from an history.
 
    If a model has associations, those would be mirrored to the history table.
    Origin model can only get its own histories.
@@ -109,43 +113,43 @@ whereas the options are listed here (with default value).
    Basically, what you can access in the origin table can be accessed from the history table.
 
    example:
-	model: User
-	history model: UserHistories
+  model: User
+  history model: UserHistories
 
-	model: Creation
-	history model: CreationHistories
+  model: Creation
+  history model: CreationHistories
 
-	User <-> Creation: 1 to many
+  User <-> Creation: 1 to many
 
-	User.getCreations() exists (1 to many)
-	Creation.getUser() exists (1 to 1)
+  User.getCreations() exists (1 to many)
+  Creation.getUser() exists (1 to 1)
 
-	User <-> UserHistories: 1 to many
+  User <-> UserHistories: 1 to many
 
-	User.getUserHistories() exists (1 to many)
-	UserHistories.getUser() exists (1 to 1)
+  User.getUserHistories() exists (1 to many)
+  UserHistories.getUser() exists (1 to 1)
 
-	Creation <-> CreationHistories: 1 to many
+  Creation <-> CreationHistories: 1 to many
 
-	Creation.getCreationHistories() exists (1 to many)
-	CreationHistories.getCreation() exists (1 to 1)
+  Creation.getCreationHistories() exists (1 to many)
+  CreationHistories.getCreation() exists (1 to 1)
 
-	CreationHistories -> User: many to 1
+  CreationHistories -> User: many to 1
 
-	CreationHistories.getUser() exists (1 to 1) (same as Creation.getUser())
-	User.GetCreationHistories DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
+  CreationHistories.getUser() exists (1 to 1) (same as Creation.getUser())
+  User.GetCreationHistories DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
 
-	UserHistories -> Creation: many to many
+  UserHistories -> Creation: many to many
 
-	UserHistories.getCreations() exists (1 to many) (same as User.getCreations())
-	CreationHistories.getUser() DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
+  UserHistories.getCreations() exists (1 to many) (same as User.getCreations())
+  CreationHistories.getUser() DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
 
   */
   addAssociations: false,
   /*
-	By default, transactions are allowed but can be disabled with that flag for the historical tables (transactions on original tables should stay the same). It is useful in case you are using a separate DB than the one use by the original DB.
+  By default, transactions are allowed but can be disabled with that flag for the historical tables (transactions on original tables should stay the same). It is useful in case you are using a separate DB than the one use by the original DB.
 
-	NOTE: IF YOU USE A SEPARATE DB FOR HISTORICAL TABLE, SET THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
+  NOTE: IF YOU USE A SEPARATE DB FOR HISTORICAL TABLE, SET THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
   */
   allowTransactions: true
 ```
@@ -161,6 +165,15 @@ History table stores historical versions of rows, which are inserted by triggers
 ### Hooks
 
 Triggers for storing old versions of rows to history table are inspired by referential integrity triggers. They are fired for each row before UPDATE and DELETE (within the same transaction)
+
+### IMPORTANT
+
+If you use `destroy` methods it is very important that you either:
+
+1. Use `paranoid: true` on all models you plan to use destroy on OR
+2. Use `individualHooks: true` on all destroy commands.
+
+It is best to use `paranoid: true` because that means it will give the most accurate time at which the element was destroyed.
 
 ### Notes
 

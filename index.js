@@ -4,8 +4,9 @@ var temporalDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
   // for increased performance
   blocking: true,
-  full: false,
+  // full: false,
   modelSuffix: 'History',
+  indexSuffix: '_history',
   addAssociations: false,
   allowTransactions: true
 };
@@ -19,9 +20,10 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   var historyOwnAttrs = {
     hid: {
-      type: Sequelize.BIGINT,
+      type: Sequelize.DataTypes.UUID,
+      defaultValue: Sequelize.DataTypes.UUIDV4,
       primaryKey: true,
-      autoIncrement: true,
+      // autoIncrement: true,
       unique: true
     },
     archivedAt: {
@@ -83,7 +85,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     });
   }
   historyOptions.indexes.forEach(indexElement => {
-    indexElement.name += '_history';
+    indexElement.name += temporalOptions.indexSuffix;
   });
 
   var modelHistory = sequelize.define(
@@ -96,25 +98,58 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   // we already get the updatedAt timestamp from our models
   var insertHook = function(obj, options) {
-    var dataValues =
-      (!temporalOptions.full && obj._previousDataValues) || obj.dataValues;
-    var historyRecord = modelHistory.create(dataValues, {
-      transaction: temporalOptions.allowTransactions
-        ? options.transaction
-        : null
-    });
-    if (temporalOptions.blocking) {
-      return historyRecord;
-    }
+    return model
+      .findOne({
+        where: options.where,
+        transaction: options.transaction,
+        paranoid: false
+      })
+      .then(function(hit) {
+        var dataValues = _.cloneDeep(hit.dataValues);
+        dataValues.archivedAt = hit.dataValues.updatedAt;
+        if (options.restoreOperation) {
+          dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+        }
+        if (options.destroyOperation) {
+          // If paranoid is true, use the deleted value
+          dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
+        }
+        var historyRecord = modelHistory.create(dataValues, {
+          transaction: temporalOptions.allowTransactions
+            ? options.transaction
+            : null
+        });
+        if (temporalOptions.blocking) {
+          return historyRecord;
+        }
+      });
   };
 
   var insertBulkHook = function(options) {
     if (!options.individualHooks) {
       var queryAll = model
-        .findAll({ where: options.where, transaction: options.transaction })
+        .findAll({
+          where: options.where,
+          transaction: options.transaction,
+          paranoid: false
+        })
         .then(function(hits) {
           if (hits) {
             hits = _.map(hits, 'dataValues');
+            hits.forEach(ele => {
+              ele.archivedAt = ele.updatedAt;
+            });
+            if (options.restoreOperation) {
+              hits.forEach(ele => {
+                ele.archivedAt = Date.now();
+              });
+            }
+            if (options.destroyOperation) {
+              hits.forEach(ele => {
+                // If paranoid is true, use the deleted value
+                ele.archivedAt = ele.deletedAt || Date.now();
+              });
+            }
             return modelHistory.bulkCreate(hits, {
               transaction: temporalOptions.allowTransactions
                 ? options.transaction
@@ -128,7 +163,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     }
   };
 
-  var beforeSync = function(options) {
+  var beforeSync = function() {
     const source = this.originModel;
     const sourceHist = this;
 
@@ -173,22 +208,34 @@ var Temporal = function(model, sequelize, temporalOptions) {
     return Promise.resolve('Temporal associations established');
   };
 
-  // use `after` to be nonBlocking
-  // all hooks just create a copy
-  if (temporalOptions.full) {
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterUpdate', insertHook);
-    model.addHook('afterBulkUpdate', insertBulkHook);
-    model.addHook('afterDestroy', insertHook);
-    model.addHook('afterBulkDestroy', insertBulkHook);
-    model.addHook('afterRestore', insertHook);
-  } else {
-    model.addHook('beforeUpdate', insertHook);
-    model.addHook('beforeDestroy', insertHook);
-  }
+  const afterDestroyHook = (obj, options) => {
+    options.destroyOperation = true;
+    return insertHook(obj, options);
+  };
 
-  model.addHook('beforeBulkUpdate', insertBulkHook);
-  model.addHook('beforeBulkDestroy', insertBulkHook);
+  const afterBulkDestroyHook = options => {
+    options.destroyOperation = true;
+    return insertBulkHook(options);
+  };
+
+  const afterRestoreHook = (obj, options) => {
+    options.restoreOperation = true;
+    return insertHook(obj, options);
+  };
+
+  const afterBulkRestoreHook = options => {
+    options.restoreOperation = true;
+    return insertBulkHook(options);
+  };
+
+  model.addHook('afterCreate', insertHook);
+  model.addHook('afterBulkCreate', insertBulkHook);
+  model.addHook('afterUpdate', insertHook);
+  model.addHook('afterBulkUpdate', insertBulkHook);
+  model.addHook('afterDestroy', afterDestroyHook);
+  model.addHook('afterBulkDestroy', afterBulkDestroyHook);
+  model.addHook('afterRestore', afterRestoreHook);
+  model.addHook('afterBulkRestore', afterBulkRestoreHook);
 
   var readOnlyHook = function() {
     throw new Error(
