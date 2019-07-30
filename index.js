@@ -7,7 +7,6 @@ var temporalDefaultOptions = {
   // full: false,
   modelSuffix: 'History',
   indexSuffix: '_history',
-  deletedColumnName: 'temporalizeDeleted',
   addAssociations: false,
   allowTransactions: true
 };
@@ -31,11 +30,6 @@ var Temporal = function(model, sequelize, temporalOptions) {
       type: Sequelize.DATE,
       allowNull: false,
       defaultValue: Sequelize.NOW
-    },
-    [temporalOptions.deletedColumnName]: {
-      type: Sequelize.DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: null
     }
   };
 
@@ -117,7 +111,6 @@ var Temporal = function(model, sequelize, temporalOptions) {
           dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
         }
         if (options.destroyOperation) {
-          dataValues[temporalOptions.deletedColumnName] = true;
           // If paranoid is true, use the deleted value
           dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
         }
@@ -153,7 +146,6 @@ var Temporal = function(model, sequelize, temporalOptions) {
             }
             if (options.destroyOperation) {
               hits.forEach(ele => {
-                ele[temporalOptions.deletedColumnName] = true;
                 // If paranoid is true, use the deleted value
                 ele.archivedAt = ele.deletedAt || Date.now();
               });
