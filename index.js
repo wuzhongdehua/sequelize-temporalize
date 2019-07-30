@@ -100,7 +100,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
   var insertHook = function(obj, options) {
     return model
       .findOne({
-        where: options.where,
+        where: { id: obj.id },
         transaction: options.transaction,
         paranoid: false
       })
