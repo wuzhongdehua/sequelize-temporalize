@@ -2,7 +2,7 @@
 
 (aka "Historical records")
 
-This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes merged in. The aim is to be as consistent with [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal) as possible such that it can be used interchangeably.
+This package is a derivative of [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), with some bug fixes and major changes merged in. The project is now a substantial divergence from [sequelize-temporal](https://www.npmjs.com/package/sequelize-temporal), so it is no longer interchangeable.
 
 <!-- [![Build Status](https://travis-ci.org/bonaval/sequelize-temporal.svg?branch=master)](https://travis-ci.org/bonaval/sequelize-temporal) [![Dependency Status](https://david-dm.org/bonaval/sequelize-temporal.svg)](https://david-dm.org/bonaval/sequelize-temporal) [![NPM version](https://img.shields.io/npm/v/sequelize-temporal.svg)](https://www.npmjs.com/package/sequelize-temporal) -->
 
@@ -59,6 +59,10 @@ Model is not necessary, hence it's just the lazy version of:
 var User = sequelize.define('User', {.types.}, {.options.}); // Sequelize Docu
 Temporal(User, sequelize);
 ```
+
+## IMPORTANT NOTE
+
+If you would like to keep track of deletes in the history table, you MUST use the `paranoid: true` option when creating the original table.
 
 ## Options
 
