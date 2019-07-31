@@ -1,6 +1,7 @@
-var _ = require('lodash');
+import * as _ from 'lodash';
+import { Model } from 'sequelize';
 
-var temporalDefaultOptions = {
+const temporalDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
   // for increased performance
   blocking: true,
@@ -12,7 +13,7 @@ var temporalDefaultOptions = {
   logTransactionId: true
 };
 
-var Temporal = function(model, sequelize, temporalOptions) {
+const Temporal = function(model, sequelize, temporalOptions) {
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
 
   if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
@@ -21,9 +22,9 @@ var Temporal = function(model, sequelize, temporalOptions) {
     );
   }
 
-  var Sequelize = sequelize.Sequelize;
+  const Sequelize = sequelize.Sequelize;
 
-  var historyName = model.name + temporalOptions.modelSuffix;
+  const historyName = model.name + temporalOptions.modelSuffix;
 
   const transactionIdAttr = temporalOptions.logTransactionId
     ? {
@@ -32,7 +33,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
       }
     : undefined;
 
-  var historyOwnAttrs = {
+  const historyOwnAttrs = {
     hid: {
       type: Sequelize.DataTypes.UUID,
       defaultValue: Sequelize.DataTypes.UUIDV4,
@@ -48,7 +49,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     transactionId: transactionIdAttr
   };
 
-  var excludedAttributes = [
+  const excludedAttributes = [
     'Model',
     'unique',
     'primaryKey',
@@ -60,7 +61,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     'onDelete',
     'onUpdate'
   ];
-  var historyAttributes = _(model.rawAttributes)
+  const historyAttributes = _(model.rawAttributes)
     .mapValues(function(v) {
       v = _.omit(v, excludedAttributes);
       // remove the "NOW" defaultValue for the default timestamps
@@ -75,10 +76,10 @@ var Temporal = function(model, sequelize, temporalOptions) {
   // If the order matters, use this:
   //historyAttributes = _.assign({}, historyOwnAttrs, historyAttributes);
 
-  var historyOwnOptions = {
+  const historyOwnOptions = {
     timestamps: false
   };
-  var excludedNames = [
+  const excludedNames = [
     'name',
     'tableName',
     'sequelize',
@@ -89,11 +90,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
     'instanceMethods',
     'defaultScope'
   ];
-  var modelOptions = _.omit(model.options, excludedNames);
-  var historyOptions = _.assign({}, modelOptions, historyOwnOptions);
+  const modelOptions = _.omit(model.options, excludedNames);
+  const historyOptions: any = _.assign({}, modelOptions, historyOwnOptions);
 
   // We want to delete indexes that have unique constraint
-  var indexes = _.cloneDeep(historyOptions.indexes);
+  const indexes = _.cloneDeep(historyOptions.indexes);
   if (Array.isArray(indexes)) {
     historyOptions.indexes = indexes.filter(function(index) {
       return !index.unique && index.type != 'UNIQUE';
@@ -103,7 +104,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     indexElement.name += temporalOptions.indexSuffix;
   });
 
-  var modelHistory = sequelize.define(
+  const modelHistory = sequelize.define(
     historyName,
     historyAttributes,
     historyOptions
@@ -112,7 +113,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
   modelHistory.addAssociations = temporalOptions.addAssociations;
 
   // we already get the updatedAt timestamp from our models
-  var insertHook = function(obj, options) {
+  const insertHook = function(obj, options) {
     return model
       .findOne({
         where: { id: obj.id },
@@ -120,7 +121,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
         paranoid: false
       })
       .then(function(hit) {
-        var dataValues = _.cloneDeep(hit.dataValues);
+        const dataValues = _.cloneDeep(hit.dataValues);
         dataValues.archivedAt = hit.dataValues.updatedAt;
         if (options.restoreOperation) {
           dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
@@ -132,7 +133,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
         if (temporalOptions.logTransactionId && options.transaction) {
           dataValues.transactionId = getTransactionId(options.transaction);
         }
-        var historyRecord = modelHistory.create(dataValues, {
+        const historyRecord = modelHistory.create(dataValues, {
           transaction: temporalOptions.allowTransactions
             ? options.transaction
             : null
@@ -143,9 +144,9 @@ var Temporal = function(model, sequelize, temporalOptions) {
       });
   };
 
-  var insertBulkHook = function(options) {
+  const insertBulkHook = function(options) {
     if (!options.individualHooks) {
-      var queryAll = model
+      const queryAll = model
         .findAll({
           where: options.where,
           transaction: options.transaction,
@@ -186,7 +187,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
     }
   };
 
-  var beforeSync = function() {
+  const beforeSync = function() {
     const source = this.originModel;
     const sourceHist = this;
 
@@ -260,7 +261,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
   model.addHook('afterRestore', afterRestoreHook);
   model.addHook('afterBulkRestore', afterBulkRestoreHook);
 
-  var readOnlyHook = function() {
+  const readOnlyHook = function() {
     throw new Error(
       "This is a read-only history database. You aren't allowed to modify it."
     );

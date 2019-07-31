@@ -1,4 +1,6 @@
-var _ = require('lodash');
+"use strict";
+exports.__esModule = true;
+var _ = require("lodash");
 var temporalDefaultOptions = {
     // runs the insert within the sequelize hook chain, disable
     // for increased performance
