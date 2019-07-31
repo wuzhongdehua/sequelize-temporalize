@@ -2,12 +2,13 @@
   "name": "sequelize-temporalize",
   "version": "3.0.1",
   "description": "Temporal tables for Sequelize",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "build": "tsc index.ts",
+    "build": "tsc",
     "test": "mocha"
   },
   "repository": {
