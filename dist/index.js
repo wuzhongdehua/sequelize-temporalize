@@ -1,13 +1,9 @@
 "use strict";
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const _ = __importStar(require("lodash"));
+const lodash_1 = __importDefault(require("lodash"));
 const temporalDefaultOptions = {
     // runs the insert within the sequelize hook chain, disable
     // for increased performance
@@ -20,7 +16,7 @@ const temporalDefaultOptions = {
     logTransactionId: true
 };
 function Temporalize(model, sequelize, temporalOptions) {
-    temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
+    temporalOptions = lodash_1.default.extend({}, temporalDefaultOptions, temporalOptions);
     if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
         throw new Error('If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true');
     }
@@ -59,9 +55,9 @@ function Temporalize(model, sequelize, temporalOptions) {
         'onDelete',
         'onUpdate'
     ];
-    const historyAttributes = _(model.rawAttributes)
+    const historyAttributes = lodash_1.default(model.rawAttributes)
         .mapValues(function (v) {
-        v = _.omit(v, excludedAttributes);
+        v = lodash_1.default.omit(v, excludedAttributes);
         // remove the "NOW" defaultValue for the default timestamps
         // we want to save them, but just a copy from our master record
         if (v.fieldName == 'createdAt' || v.fieldName == 'updatedAt') {
@@ -87,10 +83,10 @@ function Temporalize(model, sequelize, temporalOptions) {
         'instanceMethods',
         'defaultScope'
     ];
-    const modelOptions = _.omit(model.options, excludedNames);
-    const historyOptions = _.assign({}, modelOptions, historyOwnOptions);
+    const modelOptions = lodash_1.default.omit(model.options, excludedNames);
+    const historyOptions = lodash_1.default.assign({}, modelOptions, historyOwnOptions);
     // We want to delete indexes that have unique constraint
-    const indexes = _.cloneDeep(historyOptions.indexes);
+    const indexes = lodash_1.default.cloneDeep(historyOptions.indexes);
     if (Array.isArray(indexes)) {
         historyOptions.indexes = indexes.filter(function (index) {
             return !index.unique && index.type != 'UNIQUE';
@@ -111,7 +107,7 @@ function Temporalize(model, sequelize, temporalOptions) {
             paranoid: false
         })
             .then(function (hit) {
-            const dataValues = _.cloneDeep(hit.dataValues);
+            const dataValues = lodash_1.default.cloneDeep(hit.dataValues);
             dataValues.archivedAt = hit.dataValues.updatedAt;
             if (options.restoreOperation) {
                 dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
@@ -143,7 +139,7 @@ function Temporalize(model, sequelize, temporalOptions) {
             })
                 .then(function (hits) {
                 if (hits) {
-                    hits = _.map(hits, 'dataValues');
+                    hits = lodash_1.default.map(hits, 'dataValues');
                     hits.forEach(ele => {
                         ele.archivedAt = ele.updatedAt;
                     });
@@ -187,7 +183,7 @@ function Temporalize(model, sequelize, temporalOptions) {
             //adding associations from history model to origin model's association
             Object.keys(source.associations).forEach(assokey => {
                 const association = source.associations[assokey];
-                const associationOptions = _.cloneDeep(association.options);
+                const associationOptions = lodash_1.default.cloneDeep(association.options);
                 const target = association.target;
                 const assocName = association.associationType.charAt(0).toLowerCase() +
                     association.associationType.substr(1);
@@ -195,7 +191,7 @@ function Temporalize(model, sequelize, temporalOptions) {
                 associationOptions.onUpdate = 'NO ACTION';
                 //handle primary keys for belongsToMany
                 if (assocName == 'belongsToMany') {
-                    sourceHist.primaryKeys = _.forEach(source.primaryKeys, x => (x.autoIncrement = false));
+                    sourceHist.primaryKeys = lodash_1.default.forEach(source.primaryKeys, x => (x.autoIncrement = false));
                     sourceHist.primaryKeyField = Object.keys(sourceHist.primaryKeys)[0];
                 }
                 sourceHist[assocName].apply(sourceHist, [target, associationOptions]);
