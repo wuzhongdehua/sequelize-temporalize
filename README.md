@@ -152,6 +152,20 @@ whereas the options are listed here (with default value).
   NOTE: IF YOU USE A SEPARATE DB FOR HISTORICAL TABLE, SET THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
   */
   allowTransactions: true
+
+  /* Logging transaction IDs allow you to keep track of singular operations and who performed them
+    For example, we may be updating multiple tables in a single request. We want a way of identifying the single operation across multiple tables in the table histories. To do this, we store the transaction ID. It is important that immediately after the creation of the transaction that the transaction ID, current time, route being requested and user ID of the individual making the request (and any other information you think is important) is stored in a request table. This may be done in middleware somewhere and you have the transaction attached to, say, the req object in Express.
+
+  */
+  logTransactionId: true
+
+  await sequelize.transaction(async transaction => {
+    // Log the request
+    await RequestLog.create({ userId, date: new Date(), transactionId: transaction.id });
+
+    // Do other things with the same transaction, the transactionId will be logged in the associated history tables
+
+  });
 ```
 
 ## Details
