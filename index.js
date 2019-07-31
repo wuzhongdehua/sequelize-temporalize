@@ -12,7 +12,7 @@ var temporalDefaultOptions = {
     allowTransactions: true,
     logTransactionId: true
 };
-var Temporal = function (model, sequelize, temporalOptions) {
+function Temporalize(model, sequelize, temporalOptions) {
     temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
     if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
         throw new Error('If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true');
@@ -198,7 +198,7 @@ var Temporal = function (model, sequelize, temporalOptions) {
             sourceHist.belongsTo(source, { foreignKey: pkfield });
             sequelize.models[sourceHist.name] = sourceHist;
         }
-        return Promise.resolve('Temporal associations established');
+        return Promise.resolve('Temporalize associations established');
     };
     var afterDestroyHook = function (obj, options) {
         options.destroyOperation = true;
@@ -231,7 +231,8 @@ var Temporal = function (model, sequelize, temporalOptions) {
     modelHistory.addHook('beforeDestroy', readOnlyHook);
     modelHistory.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
     return model;
-};
+}
+exports.Temporalize = Temporalize;
 function getTransactionId(transaction) {
     function getId() {
         return this.id;
@@ -239,4 +240,4 @@ function getTransactionId(transaction) {
     var boundGetId = getId.bind(transaction);
     return boundGetId();
 }
-module.exports = Temporal;
+exports.getTransactionId = getTransactionId;

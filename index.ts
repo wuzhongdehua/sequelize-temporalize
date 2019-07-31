@@ -13,7 +13,7 @@ const temporalDefaultOptions = {
   logTransactionId: true
 };
 
-const Temporal = function(model, sequelize, temporalOptions) {
+export function Temporalize(model, sequelize, temporalOptions) {
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
 
   if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
@@ -229,7 +229,7 @@ const Temporal = function(model, sequelize, temporalOptions) {
       sequelize.models[sourceHist.name] = sourceHist;
     }
 
-    return Promise.resolve('Temporal associations established');
+    return Promise.resolve('Temporalize associations established');
   };
 
   const afterDestroyHook = (obj, options) => {
@@ -272,14 +272,12 @@ const Temporal = function(model, sequelize, temporalOptions) {
   modelHistory.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
 
   return model;
-};
+}
 
-function getTransactionId(transaction) {
+export function getTransactionId(transaction) {
   function getId() {
     return this.id;
   }
   const boundGetId = getId.bind(transaction);
   return boundGetId();
 }
-
-module.exports = Temporal;
