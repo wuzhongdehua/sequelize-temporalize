@@ -1,4 +1,4 @@
-const Historical = require('../');
+const Historical = require('..');
 const Sequelize = require('sequelize');
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
