@@ -17,7 +17,7 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
     throw new Error(
-      'If temporalOptions.logTransactionId===true, temporalOptions.logTransactionId must also be true'
+      'If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true'
     );
   }
 
@@ -128,8 +128,8 @@ var Temporal = function(model, sequelize, temporalOptions) {
           // If paranoid is true, use the deleted value
           dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
         }
-        if (options.logTransactionId && options.transaction) {
-          dataValues.transactionId = options.transaction.id;
+        if (temporalOptions.logTransactionId && options.transaction) {
+          dataValues.transactionId = getTransactionId(options.transaction);
         }
         var historyRecord = modelHistory.create(dataValues, {
           transaction: temporalOptions.allowTransactions
@@ -167,9 +167,9 @@ var Temporal = function(model, sequelize, temporalOptions) {
                 ele.archivedAt = ele.deletedAt || Date.now();
               });
             }
-            if (options.logTransactionId && options.transaction) {
+            if (temporalOptions.logTransactionId && options.transaction) {
               hits.forEach(ele => {
-                ele.transactionId = options.transaction.id;
+                ele.transactionId = getTransactionId(options.transaction);
               });
             }
             return modelHistory.bulkCreate(hits, {
@@ -271,5 +271,13 @@ var Temporal = function(model, sequelize, temporalOptions) {
 
   return model;
 };
+
+function getTransactionId(transaction) {
+  function getId() {
+    return this.id;
+  }
+  const boundGetId = getId.bind(transaction);
+  return boundGetId();
+}
 
 module.exports = Temporal;
