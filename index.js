@@ -8,11 +8,18 @@ var temporalDefaultOptions = {
   modelSuffix: 'History',
   indexSuffix: '_history',
   addAssociations: false,
-  allowTransactions: true
+  allowTransactions: true,
+  logTransactionId: true
 };
 
 var Temporal = function(model, sequelize, temporalOptions) {
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
+
+  if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
+    throw new Error(
+      'If temporalOptions.logTransactionId===true, temporalOptions.logTransactionId must also be true'
+    );
+  }
 
   var Sequelize = sequelize.Sequelize;
 
@@ -32,6 +39,13 @@ var Temporal = function(model, sequelize, temporalOptions) {
       defaultValue: Sequelize.NOW
     }
   };
+
+  if (temporalOptions.logTransactionId) {
+    historyOwnAttrs.transactionId = {
+      type: Sequelize.DataTypes.UUID,
+      allowNull: true
+    };
+  }
 
   var excludedAttributes = [
     'Model',
@@ -114,6 +128,9 @@ var Temporal = function(model, sequelize, temporalOptions) {
           // If paranoid is true, use the deleted value
           dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
         }
+        if (options.logTransactionId && options.transaction) {
+          dataValues.transactionId = options.transaction.id;
+        }
         var historyRecord = modelHistory.create(dataValues, {
           transaction: temporalOptions.allowTransactions
             ? options.transaction
@@ -148,6 +165,11 @@ var Temporal = function(model, sequelize, temporalOptions) {
               hits.forEach(ele => {
                 // If paranoid is true, use the deleted value
                 ele.archivedAt = ele.deletedAt || Date.now();
+              });
+            }
+            if (options.logTransactionId && options.transaction) {
+              hits.forEach(ele => {
+                ele.transactionId = options.transaction.id;
               });
             }
             return modelHistory.bulkCreate(hits, {
