@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import { Model } from 'sequelize';
 
 const temporalDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
@@ -10,10 +9,21 @@ const temporalDefaultOptions = {
   indexSuffix: '_history',
   addAssociations: false,
   allowTransactions: true,
-  logTransactionId: true
+  logTransactionId: true,
+  logEventId: true
 };
 
-export function Temporalize(model, sequelize, temporalOptions) {
+export function Temporalize({
+  model,
+  modelHistory,
+  sequelize,
+  temporalOptions
+}: {
+  model;
+  modelHistory?;
+  sequelize;
+  temporalOptions;
+}) {
   temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
 
   if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
@@ -33,6 +43,13 @@ export function Temporalize(model, sequelize, temporalOptions) {
       }
     : undefined;
 
+  const eventIdAttr = temporalOptions.logEventId
+    ? {
+        type: Sequelize.DataTypes.UUID,
+        allowNull: true
+      }
+    : undefined;
+
   const historyOwnAttrs = {
     hid: {
       type: Sequelize.DataTypes.UUID,
@@ -46,7 +63,8 @@ export function Temporalize(model, sequelize, temporalOptions) {
       allowNull: false,
       defaultValue: Sequelize.NOW
     },
-    transactionId: transactionIdAttr
+    transactionId: transactionIdAttr,
+    eventId: eventIdAttr
   };
 
   const excludedAttributes = [
@@ -104,13 +122,23 @@ export function Temporalize(model, sequelize, temporalOptions) {
     indexElement.name += temporalOptions.indexSuffix;
   });
 
-  const modelHistory = sequelize.define(
-    historyName,
-    historyAttributes,
-    historyOptions
-  );
-  modelHistory.originModel = model;
-  modelHistory.addAssociations = temporalOptions.addAssociations;
+  let modelHistoryOutput;
+  if (modelHistory) {
+    modelHistory.init(historyAttributes, {
+      ...historyOptions,
+      sequelize,
+      tableName: historyName
+    });
+    modelHistoryOutput = modelHistory;
+  } else {
+    modelHistoryOutput = sequelize.define(
+      historyName,
+      historyAttributes,
+      historyOptions
+    );
+  }
+  modelHistoryOutput.originModel = model;
+  modelHistoryOutput.addAssociations = temporalOptions.addAssociations; // TODO delete?
 
   // we already get the updatedAt timestamp from our models
   const insertHook = function(obj, options) {
@@ -133,7 +161,14 @@ export function Temporalize(model, sequelize, temporalOptions) {
         if (temporalOptions.logTransactionId && options.transaction) {
           dataValues.transactionId = getTransactionId(options.transaction);
         }
-        const historyRecord = modelHistory.create(dataValues, {
+        if (
+          temporalOptions.logEventId &&
+          options.transaction &&
+          options.transaction.eventId
+        ) {
+          dataValues.eventId = options.transaction.eventId;
+        }
+        const historyRecord = modelHistoryOutput.create(dataValues, {
           transaction: temporalOptions.allowTransactions
             ? options.transaction
             : null
@@ -174,7 +209,16 @@ export function Temporalize(model, sequelize, temporalOptions) {
                 ele.transactionId = getTransactionId(options.transaction);
               });
             }
-            return modelHistory.bulkCreate(hits, {
+            if (
+              temporalOptions.logEventId &&
+              options.transaction &&
+              options.transaction.eventId
+            ) {
+              hits.forEach(ele => {
+                ele.eventId = options.transaction.eventId;
+              });
+            }
+            return modelHistoryOutput.bulkCreate(hits, {
               transaction: temporalOptions.allowTransactions
                 ? options.transaction
                 : null
@@ -267,11 +311,11 @@ export function Temporalize(model, sequelize, temporalOptions) {
     );
   };
 
-  modelHistory.addHook('beforeUpdate', readOnlyHook);
-  modelHistory.addHook('beforeDestroy', readOnlyHook);
-  modelHistory.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
+  modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
+  modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
+  modelHistoryOutput.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
 
-  return model;
+  return modelHistoryOutput;
 }
 
 export function getTransactionId(transaction) {
@@ -280,4 +324,8 @@ export function getTransactionId(transaction) {
   }
   const boundGetId = getId.bind(transaction);
   return boundGetId();
+}
+
+export function addEventIdToTransaction(eventId: string, transaction) {
+  transaction.eventId = eventId;
 }

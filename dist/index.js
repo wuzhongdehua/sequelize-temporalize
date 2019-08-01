@@ -13,9 +13,10 @@ const temporalDefaultOptions = {
     indexSuffix: '_history',
     addAssociations: false,
     allowTransactions: true,
-    logTransactionId: true
+    logTransactionId: true,
+    logEventId: true
 };
-function Temporalize(model, sequelize, temporalOptions) {
+function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
     temporalOptions = lodash_1.default.extend({}, temporalDefaultOptions, temporalOptions);
     if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
         throw new Error('If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true');
@@ -23,6 +24,12 @@ function Temporalize(model, sequelize, temporalOptions) {
     const Sequelize = sequelize.Sequelize;
     const historyName = model.name + temporalOptions.modelSuffix;
     const transactionIdAttr = temporalOptions.logTransactionId
+        ? {
+            type: Sequelize.DataTypes.UUID,
+            allowNull: true
+        }
+        : undefined;
+    const eventIdAttr = temporalOptions.logEventId
         ? {
             type: Sequelize.DataTypes.UUID,
             allowNull: true
@@ -41,7 +48,8 @@ function Temporalize(model, sequelize, temporalOptions) {
             allowNull: false,
             defaultValue: Sequelize.NOW
         },
-        transactionId: transactionIdAttr
+        transactionId: transactionIdAttr,
+        eventId: eventIdAttr
     };
     const excludedAttributes = [
         'Model',
@@ -95,9 +103,16 @@ function Temporalize(model, sequelize, temporalOptions) {
     historyOptions.indexes.forEach(indexElement => {
         indexElement.name += temporalOptions.indexSuffix;
     });
-    const modelHistory = sequelize.define(historyName, historyAttributes, historyOptions);
-    modelHistory.originModel = model;
-    modelHistory.addAssociations = temporalOptions.addAssociations;
+    let modelHistoryOutput;
+    if (modelHistory) {
+        modelHistory.init(historyAttributes, Object.assign({}, historyOptions, { sequelize, tableName: historyName }));
+        modelHistoryOutput = modelHistory;
+    }
+    else {
+        modelHistoryOutput = sequelize.define(historyName, historyAttributes, historyOptions);
+    }
+    modelHistoryOutput.originModel = model;
+    modelHistoryOutput.addAssociations = temporalOptions.addAssociations; // TODO delete?
     // we already get the updatedAt timestamp from our models
     const insertHook = function (obj, options) {
         return model
@@ -119,7 +134,12 @@ function Temporalize(model, sequelize, temporalOptions) {
             if (temporalOptions.logTransactionId && options.transaction) {
                 dataValues.transactionId = getTransactionId(options.transaction);
             }
-            const historyRecord = modelHistory.create(dataValues, {
+            if (temporalOptions.logEventId &&
+                options.transaction &&
+                options.transaction.eventId) {
+                dataValues.eventId = options.transaction.eventId;
+            }
+            const historyRecord = modelHistoryOutput.create(dataValues, {
                 transaction: temporalOptions.allowTransactions
                     ? options.transaction
                     : null
@@ -159,7 +179,14 @@ function Temporalize(model, sequelize, temporalOptions) {
                             ele.transactionId = getTransactionId(options.transaction);
                         });
                     }
-                    return modelHistory.bulkCreate(hits, {
+                    if (temporalOptions.logEventId &&
+                        options.transaction &&
+                        options.transaction.eventId) {
+                        hits.forEach(ele => {
+                            ele.eventId = options.transaction.eventId;
+                        });
+                    }
+                    return modelHistoryOutput.bulkCreate(hits, {
                         transaction: temporalOptions.allowTransactions
                             ? options.transaction
                             : null
@@ -230,10 +257,10 @@ function Temporalize(model, sequelize, temporalOptions) {
     const readOnlyHook = function () {
         throw new Error("This is a read-only history database. You aren't allowed to modify it.");
     };
-    modelHistory.addHook('beforeUpdate', readOnlyHook);
-    modelHistory.addHook('beforeDestroy', readOnlyHook);
-    modelHistory.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
-    return model;
+    modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
+    modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
+    modelHistoryOutput.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
+    return modelHistoryOutput;
 }
 exports.Temporalize = Temporalize;
 function getTransactionId(transaction) {
@@ -244,3 +271,7 @@ function getTransactionId(transaction) {
     return boundGetId();
 }
 exports.getTransactionId = getTransactionId;
+function addEventIdToTransaction(eventId, transaction) {
+    transaction.eventId = eventId;
+}
+exports.addEventIdToTransaction = addEventIdToTransaction;

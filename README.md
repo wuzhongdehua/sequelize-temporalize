@@ -154,18 +154,24 @@ whereas the options are listed here (with default value).
   allowTransactions: true
 
   /* Logging transaction IDs allow you to keep track of singular operations and who performed them
-    For example, we may be updating multiple tables in a single request. We want a way of identifying the single operation across multiple tables in the table histories. To do this, we store the transaction ID. It is important that immediately after the creation of the transaction that the transaction ID, current time, route being requested and user ID of the individual making the request (and any other information you think is important) is stored in a request table. This may be done in middleware somewhere and you have the transaction attached to, say, the req object in Express.
-
+    For example, we may be updating multiple tables in a single request. We want a way of identifying the single operation across multiple tables in the table histories. To do this, we store the transaction ID. It is important that immediately after the creation of the transaction that the transaction ID, current time, route being requested and user ID of the individual making the request (and any other information you think is important) is stored in a request table.
   */
   logTransactionId: true
 
+  import {getTransactionId} from 'sequelize-temporalize';
   await sequelize.transaction(async transaction => {
+    const userId = req.userId;
+    const eventId = uuidv4(); // for example, can use other uuid functions to generate unique ids for the request event
     // Log the request
-    await RequestLog.create({ userId, date: new Date(), transactionId: transaction.id });
+    await RequestLog.create({ userId, date: new Date(), eventId, transactionId: getTransactionId(transaction) });
 
     // Do other things with the same transaction, the transactionId will be logged in the associated history tables
 
+    // Note that in order for the operation to be logged, the transaction must be passed as an option. This has the side-effect of undoing the transaction if an error occurs at any point in the request. If you want to keep the operation even if the transaction is undone, you would need to create a new transaction, give it the same eventId, and pass the transaction, in order to associate it as a single event.
   });
+
+
+
 ```
 
 ## Details
@@ -182,12 +188,7 @@ Triggers for storing old versions of rows to history table are inspired by refer
 
 ### IMPORTANT
 
-If you use `destroy` methods it is very important that you either:
-
-1. Use `paranoid: true` on all models you plan to use destroy on OR
-2. Use `individualHooks: true` on all destroy commands.
-
-It is best to use `paranoid: true` because that means it will give the most accurate time at which the element was destroyed.
+If you use `destroy` or `restore` methods it is very important that you use `paranoid: true` on all models you plan to use destroy/restore on, to ensure that copies of the data exist in the DB to be copied into the history table.
 
 ### Notes
 
@@ -197,7 +198,7 @@ If you only use Postgres, you might want to have a look at the [Temporal Table](
 
 The MIT License (MIT)
 
-Copyright (c) 2015 BonaVal
+Copyright (c) 2015 James Jansson, Hosportal, BonaVal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
