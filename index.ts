@@ -1,6 +1,6 @@
 import _ from 'lodash';
 
-const temporalDefaultOptions = {
+const temporalizeDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
   // for increased performance
   blocking: true,
@@ -17,33 +17,40 @@ export function Temporalize({
   model,
   modelHistory,
   sequelize,
-  temporalOptions
+  temporalizeOptions
 }: {
   model;
   modelHistory?;
   sequelize;
-  temporalOptions;
+  temporalizeOptions;
 }) {
-  temporalOptions = _.extend({}, temporalDefaultOptions, temporalOptions);
+  temporalizeOptions = _.extend(
+    {},
+    temporalizeDefaultOptions,
+    temporalizeOptions
+  );
 
-  if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
+  if (
+    temporalizeOptions.logTransactionId &&
+    !temporalizeOptions.allowTransactions
+  ) {
     throw new Error(
-      'If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true'
+      'If temporalizeOptions.logTransactionId===true, temporalizeOptions.allowTransactions must also be true'
     );
   }
 
   const Sequelize = sequelize.Sequelize;
 
-  const historyName = model.name + temporalOptions.modelSuffix;
+  const historyName = model.name + temporalizeOptions.modelSuffix;
 
-  const transactionIdAttr = temporalOptions.logTransactionId
+  const transactionIdAttr = temporalizeOptions.logTransactionId
     ? {
         type: Sequelize.DataTypes.UUID,
         allowNull: true
       }
     : undefined;
 
-  const eventIdAttr = temporalOptions.logEventId
+  const eventIdAttr = temporalizeOptions.logEventId
     ? {
         type: Sequelize.DataTypes.UUID,
         allowNull: true
@@ -119,7 +126,7 @@ export function Temporalize({
     });
   }
   historyOptions.indexes.forEach(indexElement => {
-    indexElement.name += temporalOptions.indexSuffix;
+    indexElement.name += temporalizeOptions.indexSuffix;
   });
 
   let modelHistoryOutput;
@@ -138,7 +145,7 @@ export function Temporalize({
     );
   }
   modelHistoryOutput.originModel = model;
-  modelHistoryOutput.addAssociations = temporalOptions.addAssociations; // TODO delete?
+  modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
 
   // we already get the updatedAt timestamp from our models
   const insertHook = function(obj, options) {
@@ -158,22 +165,22 @@ export function Temporalize({
           // If paranoid is true, use the deleted value
           dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
         }
-        if (temporalOptions.logTransactionId && options.transaction) {
+        if (temporalizeOptions.logTransactionId && options.transaction) {
           dataValues.transactionId = getTransactionId(options.transaction);
         }
         if (
-          temporalOptions.logEventId &&
+          temporalizeOptions.logEventId &&
           options.transaction &&
           options.transaction.eventId
         ) {
           dataValues.eventId = options.transaction.eventId;
         }
         const historyRecord = modelHistoryOutput.create(dataValues, {
-          transaction: temporalOptions.allowTransactions
+          transaction: temporalizeOptions.allowTransactions
             ? options.transaction
             : null
         });
-        if (temporalOptions.blocking) {
+        if (temporalizeOptions.blocking) {
           return historyRecord;
         }
       });
@@ -204,13 +211,13 @@ export function Temporalize({
                 ele.archivedAt = ele.deletedAt || Date.now();
               });
             }
-            if (temporalOptions.logTransactionId && options.transaction) {
+            if (temporalizeOptions.logTransactionId && options.transaction) {
               hits.forEach(ele => {
                 ele.transactionId = getTransactionId(options.transaction);
               });
             }
             if (
-              temporalOptions.logEventId &&
+              temporalizeOptions.logEventId &&
               options.transaction &&
               options.transaction.eventId
             ) {
@@ -219,13 +226,13 @@ export function Temporalize({
               });
             }
             return modelHistoryOutput.bulkCreate(hits, {
-              transaction: temporalOptions.allowTransactions
+              transaction: temporalizeOptions.allowTransactions
                 ? options.transaction
                 : null
             });
           }
         });
-      if (temporalOptions.blocking) {
+      if (temporalizeOptions.blocking) {
         return queryAll;
       }
     }
@@ -237,9 +244,9 @@ export function Temporalize({
 
     if (
       source &&
-      !source.name.endsWith(temporalOptions.modelSuffix) &&
+      !source.name.endsWith(temporalizeOptions.modelSuffix) &&
       source.associations &&
-      temporalOptions.addAssociations == true &&
+      temporalizeOptions.addAssociations == true &&
       sourceHist
     ) {
       const pkfield = source.primaryKeyField;

@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const lodash_1 = __importDefault(require("lodash"));
-const temporalDefaultOptions = {
+const temporalizeDefaultOptions = {
     // runs the insert within the sequelize hook chain, disable
     // for increased performance
     blocking: true,
@@ -16,20 +16,21 @@ const temporalDefaultOptions = {
     logTransactionId: true,
     logEventId: true
 };
-function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
-    temporalOptions = lodash_1.default.extend({}, temporalDefaultOptions, temporalOptions);
-    if (temporalOptions.logTransactionId && !temporalOptions.allowTransactions) {
-        throw new Error('If temporalOptions.logTransactionId===true, temporalOptions.allowTransactions must also be true');
+function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
+    temporalizeOptions = lodash_1.default.extend({}, temporalizeDefaultOptions, temporalizeOptions);
+    if (temporalizeOptions.logTransactionId &&
+        !temporalizeOptions.allowTransactions) {
+        throw new Error('If temporalizeOptions.logTransactionId===true, temporalizeOptions.allowTransactions must also be true');
     }
     const Sequelize = sequelize.Sequelize;
-    const historyName = model.name + temporalOptions.modelSuffix;
-    const transactionIdAttr = temporalOptions.logTransactionId
+    const historyName = model.name + temporalizeOptions.modelSuffix;
+    const transactionIdAttr = temporalizeOptions.logTransactionId
         ? {
             type: Sequelize.DataTypes.UUID,
             allowNull: true
         }
         : undefined;
-    const eventIdAttr = temporalOptions.logEventId
+    const eventIdAttr = temporalizeOptions.logEventId
         ? {
             type: Sequelize.DataTypes.UUID,
             allowNull: true
@@ -101,7 +102,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
         });
     }
     historyOptions.indexes.forEach(indexElement => {
-        indexElement.name += temporalOptions.indexSuffix;
+        indexElement.name += temporalizeOptions.indexSuffix;
     });
     let modelHistoryOutput;
     if (modelHistory) {
@@ -112,7 +113,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
         modelHistoryOutput = sequelize.define(historyName, historyAttributes, historyOptions);
     }
     modelHistoryOutput.originModel = model;
-    modelHistoryOutput.addAssociations = temporalOptions.addAssociations; // TODO delete?
+    modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
     // we already get the updatedAt timestamp from our models
     const insertHook = function (obj, options) {
         return model
@@ -131,20 +132,20 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
                 // If paranoid is true, use the deleted value
                 dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
             }
-            if (temporalOptions.logTransactionId && options.transaction) {
+            if (temporalizeOptions.logTransactionId && options.transaction) {
                 dataValues.transactionId = getTransactionId(options.transaction);
             }
-            if (temporalOptions.logEventId &&
+            if (temporalizeOptions.logEventId &&
                 options.transaction &&
                 options.transaction.eventId) {
                 dataValues.eventId = options.transaction.eventId;
             }
             const historyRecord = modelHistoryOutput.create(dataValues, {
-                transaction: temporalOptions.allowTransactions
+                transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
                     : null
             });
-            if (temporalOptions.blocking) {
+            if (temporalizeOptions.blocking) {
                 return historyRecord;
             }
         });
@@ -174,12 +175,12 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
                             ele.archivedAt = ele.deletedAt || Date.now();
                         });
                     }
-                    if (temporalOptions.logTransactionId && options.transaction) {
+                    if (temporalizeOptions.logTransactionId && options.transaction) {
                         hits.forEach(ele => {
                             ele.transactionId = getTransactionId(options.transaction);
                         });
                     }
-                    if (temporalOptions.logEventId &&
+                    if (temporalizeOptions.logEventId &&
                         options.transaction &&
                         options.transaction.eventId) {
                         hits.forEach(ele => {
@@ -187,13 +188,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
                         });
                     }
                     return modelHistoryOutput.bulkCreate(hits, {
-                        transaction: temporalOptions.allowTransactions
+                        transaction: temporalizeOptions.allowTransactions
                             ? options.transaction
                             : null
                     });
                 }
             });
-            if (temporalOptions.blocking) {
+            if (temporalizeOptions.blocking) {
                 return queryAll;
             }
         }
@@ -202,9 +203,9 @@ function Temporalize({ model, modelHistory, sequelize, temporalOptions }) {
         const source = this.originModel;
         const sourceHist = this;
         if (source &&
-            !source.name.endsWith(temporalOptions.modelSuffix) &&
+            !source.name.endsWith(temporalizeOptions.modelSuffix) &&
             source.associations &&
-            temporalOptions.addAssociations == true &&
+            temporalizeOptions.addAssociations == true &&
             sourceHist) {
             const pkfield = source.primaryKeyField;
             //adding associations from history model to origin model's association
