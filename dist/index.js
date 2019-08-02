@@ -106,7 +106,8 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     });
     let modelHistoryOutput;
     if (modelHistory) {
-        modelHistory.init(historyAttributes, Object.assign({}, historyOptions, { sequelize, tableName: historyName }));
+        const historyClassOptions = Object.assign({}, historyOptions, { sequelize, tableName: historyName });
+        modelHistory.init(historyAttributes, historyClassOptions);
         modelHistoryOutput = modelHistory;
     }
     else {

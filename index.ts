@@ -131,11 +131,12 @@ export function Temporalize({
 
   let modelHistoryOutput;
   if (modelHistory) {
-    modelHistory.init(historyAttributes, {
+    const historyClassOptions = {
       ...historyOptions,
       sequelize,
       tableName: historyName
-    });
+    };
+    modelHistory.init(historyAttributes, historyClassOptions);
     modelHistoryOutput = modelHistory;
   } else {
     modelHistoryOutput = sequelize.define(
