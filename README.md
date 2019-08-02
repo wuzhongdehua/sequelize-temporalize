@@ -229,7 +229,7 @@ requested and user ID of the individual making the request (and any other
 information you think is important) is stored in a request table.
 
 ```js
-import { uuidv4 } from 'uuid/v4';
+import { v4 as uuidv4 } from 'uuid';
 import { addEventIdToTransaction } from 'sequelize-temporalize';
 import { RequestLog } from '../models/request-log'; // the RequestLog table
 import { Post } from '../models/post'; // the Posts table
