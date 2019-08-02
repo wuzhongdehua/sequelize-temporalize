@@ -4,7 +4,6 @@ const temporalizeDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
   // for increased performance
   blocking: true,
-  // full: false,
   modelSuffix: 'History',
   indexSuffix: '_history',
   addAssociations: false,
