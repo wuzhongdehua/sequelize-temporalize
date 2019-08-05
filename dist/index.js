@@ -2,8 +2,17 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const lodash_1 = __importDefault(require("lodash"));
+const debug = __importStar(require("debug"));
+const debugLog = debug('sequelize-temporalize');
 const temporalizeDefaultOptions = {
     // runs the insert within the sequelize hook chain, disable
     // for increased performance
@@ -101,7 +110,18 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         });
     }
     historyOptions.indexes.forEach(indexElement => {
-        indexElement.name += temporalizeOptions.indexSuffix;
+        if (indexElement.name.length + temporalizeOptions.indexSuffix.length >=
+            63) {
+            debugLog('index name ' +
+                indexElement.name +
+                ' is very long and hence it was shortened before adding the suffix ' +
+                temporalizeOptions.indexSuffix);
+            indexElement.name =
+                indexElement.name.substring(0, indexElement.name.length - temporalizeOptions.indexSuffix.length) + temporalizeOptions.indexSuffix;
+        }
+        else {
+            indexElement.name += temporalizeOptions.indexSuffix;
+        }
     });
     let modelHistoryOutput;
     if (modelHistory) {
@@ -163,30 +183,22 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                     hits = lodash_1.default.map(hits, 'dataValues');
                     hits.forEach(ele => {
                         ele.archivedAt = ele.updatedAt;
-                    });
-                    if (options.restoreOperation) {
-                        hits.forEach(ele => {
+                        if (options.restoreOperation) {
                             ele.archivedAt = Date.now();
-                        });
-                    }
-                    if (options.destroyOperation) {
-                        hits.forEach(ele => {
+                        }
+                        if (options.destroyOperation) {
                             // If paranoid is true, use the deleted value
                             ele.archivedAt = ele.deletedAt || Date.now();
-                        });
-                    }
-                    if (temporalizeOptions.logTransactionId && options.transaction) {
-                        hits.forEach(ele => {
+                        }
+                        if (temporalizeOptions.logTransactionId && options.transaction) {
                             ele.transactionId = getTransactionId(options.transaction);
-                        });
-                    }
-                    if (temporalizeOptions.logEventId &&
-                        options.transaction &&
-                        options.transaction.eventId) {
-                        hits.forEach(ele => {
+                        }
+                        if (temporalizeOptions.logEventId &&
+                            options.transaction &&
+                            options.transaction.eventId) {
                             ele.eventId = options.transaction.eventId;
-                        });
-                    }
+                        }
+                    });
                     return modelHistoryOutput.bulkCreate(hits, {
                         transaction: temporalizeOptions.allowTransactions
                             ? options.transaction
