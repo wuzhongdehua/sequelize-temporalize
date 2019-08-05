@@ -218,32 +218,24 @@ export function Temporalize({
             hits = _.map(hits, 'dataValues');
             hits.forEach(ele => {
               ele.archivedAt = ele.updatedAt;
-            });
-            if (options.restoreOperation) {
-              hits.forEach(ele => {
+              if (options.restoreOperation) {
                 ele.archivedAt = Date.now();
-              });
-            }
-            if (options.destroyOperation) {
-              hits.forEach(ele => {
+              }
+              if (options.destroyOperation) {
                 // If paranoid is true, use the deleted value
                 ele.archivedAt = ele.deletedAt || Date.now();
-              });
-            }
-            if (temporalizeOptions.logTransactionId && options.transaction) {
-              hits.forEach(ele => {
+              }
+              if (temporalizeOptions.logTransactionId && options.transaction) {
                 ele.transactionId = getTransactionId(options.transaction);
-              });
-            }
-            if (
-              temporalizeOptions.logEventId &&
-              options.transaction &&
-              options.transaction.eventId
-            ) {
-              hits.forEach(ele => {
+              }
+              if (
+                temporalizeOptions.logEventId &&
+                options.transaction &&
+                options.transaction.eventId
+              ) {
                 ele.eventId = options.transaction.eventId;
-              });
-            }
+              }
+            });
             return modelHistoryOutput.bulkCreate(hits, {
               transaction: temporalizeOptions.allowTransactions
                 ? options.transaction
