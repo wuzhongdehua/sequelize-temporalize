@@ -125,7 +125,24 @@ export function Temporalize({
     });
   }
   historyOptions.indexes.forEach(indexElement => {
-    indexElement.name += temporalizeOptions.indexSuffix;
+    if (
+      indexElement.name.length + temporalizeOptions.indexSuffix.length >=
+      63
+    ) {
+      console.log(
+        'index name ' +
+          indexElement.name +
+          ' is very long and hence it was shortened before adding the suffix ' +
+          temporalizeOptions.indexSuffix
+      );
+      indexElement.name =
+        indexElement.name.substring(
+          0,
+          indexElement.name.length - temporalizeOptions.indexSuffix.length
+        ) + temporalizeOptions.indexSuffix;
+    } else {
+      indexElement.name += temporalizeOptions.indexSuffix;
+    }
   });
 
   let modelHistoryOutput;
@@ -199,32 +216,24 @@ export function Temporalize({
             hits = _.map(hits, 'dataValues');
             hits.forEach(ele => {
               ele.archivedAt = ele.updatedAt;
-            });
-            if (options.restoreOperation) {
-              hits.forEach(ele => {
+              if (options.restoreOperation) {
                 ele.archivedAt = Date.now();
-              });
-            }
-            if (options.destroyOperation) {
-              hits.forEach(ele => {
+              }
+              if (options.destroyOperation) {
                 // If paranoid is true, use the deleted value
                 ele.archivedAt = ele.deletedAt || Date.now();
-              });
-            }
-            if (temporalizeOptions.logTransactionId && options.transaction) {
-              hits.forEach(ele => {
+              }
+              if (temporalizeOptions.logTransactionId && options.transaction) {
                 ele.transactionId = getTransactionId(options.transaction);
-              });
-            }
-            if (
-              temporalizeOptions.logEventId &&
-              options.transaction &&
-              options.transaction.eventId
-            ) {
-              hits.forEach(ele => {
+              }
+              if (
+                temporalizeOptions.logEventId &&
+                options.transaction &&
+                options.transaction.eventId
+              ) {
                 ele.eventId = options.transaction.eventId;
-              });
-            }
+              }
+            });
             return modelHistoryOutput.bulkCreate(hits, {
               transaction: temporalizeOptions.allowTransactions
                 ? options.transaction
