@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import * as debug from 'debug';
+const debugLog = debug('sequelize-temporalize');
 
 const temporalizeDefaultOptions = {
   // runs the insert within the sequelize hook chain, disable
@@ -125,7 +127,24 @@ export function Temporalize({
     });
   }
   historyOptions.indexes.forEach(indexElement => {
-    indexElement.name += temporalizeOptions.indexSuffix;
+    if (
+      indexElement.name.length + temporalizeOptions.indexSuffix.length >=
+      63
+    ) {
+      debugLog(
+        'index name ' +
+          indexElement.name +
+          ' is very long and hence it was shortened before adding the suffix ' +
+          temporalizeOptions.indexSuffix
+      );
+      indexElement.name =
+        indexElement.name.substring(
+          0,
+          indexElement.name.length - temporalizeOptions.indexSuffix.length
+        ) + temporalizeOptions.indexSuffix;
+    } else {
+      indexElement.name += temporalizeOptions.indexSuffix;
+    }
   });
 
   let modelHistoryOutput;
