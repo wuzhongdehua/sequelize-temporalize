@@ -2,17 +2,8 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const lodash_1 = __importDefault(require("lodash"));
-const debug = __importStar(require("debug"));
-const debugLog = debug('sequelize-temporalize');
 const temporalizeDefaultOptions = {
     // runs the insert within the sequelize hook chain, disable
     // for increased performance
@@ -112,7 +103,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     historyOptions.indexes.forEach(indexElement => {
         if (indexElement.name.length + temporalizeOptions.indexSuffix.length >=
             63) {
-            debugLog('index name ' +
+            console.log('index name ' +
                 indexElement.name +
                 ' is very long and hence it was shortened before adding the suffix ' +
                 temporalizeOptions.indexSuffix);

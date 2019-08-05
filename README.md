@@ -68,7 +68,7 @@ or using es6 classes (useful in Typescript)
 export class User extends Model {
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
-  public readonly deletedAt!: Date; // necesssary if using paranoid:true
+  public readonly deletedAt!: Date; // necessary if using paranoid:true
   public id!: string;
   public username!: string;
   public email!: string;
@@ -120,7 +120,7 @@ the `paranoid: true` option when creating the original table.
 
 The default syntax for `Temporalize` is:
 
-`Temporalize({model, historymodel, sequelize, temporalizeOptions})`
+`Temporalize({model, modelHistory, sequelize, temporalizeOptions})`
 
 whereas the temporalizeOptions are listed here (with default value).
 
