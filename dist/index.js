@@ -202,6 +202,35 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             }
         }
     };
+    const afterDestroyHook = (obj, options) => {
+        options.destroyOperation = true;
+        return insertHook(obj, options);
+    };
+    const afterBulkDestroyHook = options => {
+        options.destroyOperation = true;
+        return insertBulkHook(options);
+    };
+    const afterRestoreHook = (obj, options) => {
+        options.restoreOperation = true;
+        return insertHook(obj, options);
+    };
+    const afterBulkRestoreHook = options => {
+        options.restoreOperation = true;
+        return insertBulkHook(options);
+    };
+    model.addHook('afterCreate', insertHook);
+    model.addHook('afterBulkCreate', insertBulkHook);
+    model.addHook('afterUpdate', insertHook);
+    model.addHook('afterBulkUpdate', insertBulkHook);
+    model.addHook('afterDestroy', afterDestroyHook);
+    model.addHook('afterBulkDestroy', afterBulkDestroyHook);
+    model.addHook('afterRestore', afterRestoreHook);
+    model.addHook('afterBulkRestore', afterBulkRestoreHook);
+    const readOnlyHook = function () {
+        throw new Error("This is a read-only history database. You aren't allowed to modify it.");
+    };
+    modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
+    modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
     const beforeSync = function () {
         const source = this.originModel;
         const sourceHist = this;
@@ -234,35 +263,6 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         }
         return Promise.resolve('Temporalize associations established');
     };
-    const afterDestroyHook = (obj, options) => {
-        options.destroyOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkDestroyHook = options => {
-        options.destroyOperation = true;
-        return insertBulkHook(options);
-    };
-    const afterRestoreHook = (obj, options) => {
-        options.restoreOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkRestoreHook = options => {
-        options.restoreOperation = true;
-        return insertBulkHook(options);
-    };
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterBulkCreate', insertBulkHook);
-    model.addHook('afterUpdate', insertHook);
-    model.addHook('afterBulkUpdate', insertBulkHook);
-    model.addHook('afterDestroy', afterDestroyHook);
-    model.addHook('afterBulkDestroy', afterBulkDestroyHook);
-    model.addHook('afterRestore', afterRestoreHook);
-    model.addHook('afterBulkRestore', afterBulkRestoreHook);
-    const readOnlyHook = function () {
-        throw new Error("This is a read-only history database. You aren't allowed to modify it.");
-    };
-    modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
-    modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
     modelHistoryOutput.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
     return modelHistoryOutput;
 }
