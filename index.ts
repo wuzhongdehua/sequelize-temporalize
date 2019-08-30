@@ -164,7 +164,55 @@ export function Temporalize({
   modelHistoryOutput.originModel = model;
   modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
 
-  // we already get the updatedAt timestamp from our models
+  function transformToHistoryEntry(instance, options) {
+    const dataValues = _.cloneDeep(instance.dataValues);
+    dataValues.archivedAt = instance.dataValues.updatedAt;
+    if (options.restoreOperation) {
+      dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+    }
+    if (options.destroyOperation) {
+      // If paranoid is true, use the deleted value
+      dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
+    }
+    if (temporalizeOptions.logTransactionId && options.transaction) {
+      dataValues.transactionId = getTransactionId(options.transaction);
+    }
+    if (
+      temporalizeOptions.logEventId &&
+      options.transaction &&
+      options.transaction.eventId
+    ) {
+      dataValues.eventId = options.transaction.eventId;
+    }
+    return dataValues;
+  }
+
+  async function createHistoryEntry(instance, options) {
+    const dataValues = transformToHistoryEntry(instance, options);
+    const historyRecord = modelHistoryOutput.create(dataValues, {
+      transaction: temporalizeOptions.allowTransactions
+        ? options.transaction
+        : null
+    });
+    if (temporalizeOptions.blocking) {
+      return historyRecord;
+    }
+  }
+
+  async function createHistoryEntryBulk(instances, options) {
+    const dataValuesArr = instances.map(instance => {
+      return transformToHistoryEntry(instance, options);
+    });
+    const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
+      transaction: temporalizeOptions.allowTransactions
+        ? options.transaction
+        : null
+    });
+    if (temporalizeOptions.blocking) {
+      return historyRecord;
+    }
+  }
+
   const insertHook = function(obj, options) {
     return model
       .findOne({
@@ -172,34 +220,8 @@ export function Temporalize({
         transaction: options.transaction,
         paranoid: false
       })
-      .then(function(hit) {
-        const dataValues = _.cloneDeep(hit.dataValues);
-        dataValues.archivedAt = hit.dataValues.updatedAt;
-        if (options.restoreOperation) {
-          dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
-        }
-        if (options.destroyOperation) {
-          // If paranoid is true, use the deleted value
-          dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
-        }
-        if (temporalizeOptions.logTransactionId && options.transaction) {
-          dataValues.transactionId = getTransactionId(options.transaction);
-        }
-        if (
-          temporalizeOptions.logEventId &&
-          options.transaction &&
-          options.transaction.eventId
-        ) {
-          dataValues.eventId = options.transaction.eventId;
-        }
-        const historyRecord = modelHistoryOutput.create(dataValues, {
-          transaction: temporalizeOptions.allowTransactions
-            ? options.transaction
-            : null
-        });
-        if (temporalizeOptions.blocking) {
-          return historyRecord;
-        }
+      .then(function(instance) {
+        return createHistoryEntry(instance, options);
       });
   };
 
@@ -211,40 +233,14 @@ export function Temporalize({
           transaction: options.transaction,
           paranoid: false
         })
-        .then(function(hits) {
-          if (hits) {
-            hits = _.map(hits, 'dataValues');
-            hits.forEach(ele => {
-              ele.archivedAt = ele.updatedAt;
-              if (options.restoreOperation) {
-                ele.archivedAt = Date.now();
-              }
-              if (options.destroyOperation) {
-                // If paranoid is true, use the deleted value
-                ele.archivedAt = ele.deletedAt || Date.now();
-              }
-              if (temporalizeOptions.logTransactionId && options.transaction) {
-                ele.transactionId = getTransactionId(options.transaction);
-              }
-              if (
-                temporalizeOptions.logEventId &&
-                options.transaction &&
-                options.transaction.eventId
-              ) {
-                ele.eventId = options.transaction.eventId;
-              }
-            });
-            return modelHistoryOutput.bulkCreate(hits, {
-              transaction: temporalizeOptions.allowTransactions
-                ? options.transaction
-                : null
-            });
-          }
+        .then(function(instances) {
+          return createHistoryEntryBulk(instances, options);
         });
-      if (temporalizeOptions.blocking) {
-        return queryAll;
-      }
     }
+  };
+
+  const afterUpdateHook = (instances, options) => {
+    insertHook(instances, options);
   };
 
   const afterDestroyHook = (obj, options) => {
@@ -269,7 +265,7 @@ export function Temporalize({
 
   model.addHook('afterCreate', insertHook);
   model.addHook('afterBulkCreate', insertBulkHook);
-  model.addHook('afterUpdate', insertHook);
+  model.addHook('afterUpdate', afterUpdateHook);
   model.addHook('afterBulkUpdate', insertBulkHook);
   model.addHook('afterDestroy', afterDestroyHook);
   model.addHook('afterBulkDestroy', afterBulkDestroyHook);

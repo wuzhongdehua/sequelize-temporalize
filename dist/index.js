@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -125,32 +133,29 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     }
     modelHistoryOutput.originModel = model;
     modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
-    // we already get the updatedAt timestamp from our models
-    const insertHook = function (obj, options) {
-        return model
-            .findOne({
-            where: { id: obj.id },
-            transaction: options.transaction,
-            paranoid: false
-        })
-            .then(function (hit) {
-            const dataValues = lodash_1.default.cloneDeep(hit.dataValues);
-            dataValues.archivedAt = hit.dataValues.updatedAt;
-            if (options.restoreOperation) {
-                dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
-            }
-            if (options.destroyOperation) {
-                // If paranoid is true, use the deleted value
-                dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
-            }
-            if (temporalizeOptions.logTransactionId && options.transaction) {
-                dataValues.transactionId = getTransactionId(options.transaction);
-            }
-            if (temporalizeOptions.logEventId &&
-                options.transaction &&
-                options.transaction.eventId) {
-                dataValues.eventId = options.transaction.eventId;
-            }
+    function transformToHistoryEntry(instance, options) {
+        const dataValues = lodash_1.default.cloneDeep(instance.dataValues);
+        dataValues.archivedAt = instance.dataValues.updatedAt;
+        if (options.restoreOperation) {
+            dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+        }
+        if (options.destroyOperation) {
+            // If paranoid is true, use the deleted value
+            dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
+        }
+        if (temporalizeOptions.logTransactionId && options.transaction) {
+            dataValues.transactionId = getTransactionId(options.transaction);
+        }
+        if (temporalizeOptions.logEventId &&
+            options.transaction &&
+            options.transaction.eventId) {
+            dataValues.eventId = options.transaction.eventId;
+        }
+        return dataValues;
+    }
+    function createHistoryEntry(instance, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dataValues = transformToHistoryEntry(instance, options);
             const historyRecord = modelHistoryOutput.create(dataValues, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
@@ -159,6 +164,32 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             if (temporalizeOptions.blocking) {
                 return historyRecord;
             }
+        });
+    }
+    function createHistoryEntryBulk(instances, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dataValuesArr = instances.map(instance => {
+                return transformToHistoryEntry(instance, options);
+            });
+            const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
+                transaction: temporalizeOptions.allowTransactions
+                    ? options.transaction
+                    : null
+            });
+            if (temporalizeOptions.blocking) {
+                return historyRecord;
+            }
+        });
+    }
+    const insertHook = function (obj, options) {
+        return model
+            .findOne({
+            where: { id: obj.id },
+            transaction: options.transaction,
+            paranoid: false
+        })
+            .then(function (instance) {
+            return createHistoryEntry(instance, options);
         });
     };
     const insertBulkHook = function (options) {
@@ -169,38 +200,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                 transaction: options.transaction,
                 paranoid: false
             })
-                .then(function (hits) {
-                if (hits) {
-                    hits = lodash_1.default.map(hits, 'dataValues');
-                    hits.forEach(ele => {
-                        ele.archivedAt = ele.updatedAt;
-                        if (options.restoreOperation) {
-                            ele.archivedAt = Date.now();
-                        }
-                        if (options.destroyOperation) {
-                            // If paranoid is true, use the deleted value
-                            ele.archivedAt = ele.deletedAt || Date.now();
-                        }
-                        if (temporalizeOptions.logTransactionId && options.transaction) {
-                            ele.transactionId = getTransactionId(options.transaction);
-                        }
-                        if (temporalizeOptions.logEventId &&
-                            options.transaction &&
-                            options.transaction.eventId) {
-                            ele.eventId = options.transaction.eventId;
-                        }
-                    });
-                    return modelHistoryOutput.bulkCreate(hits, {
-                        transaction: temporalizeOptions.allowTransactions
-                            ? options.transaction
-                            : null
-                    });
-                }
+                .then(function (instances) {
+                return createHistoryEntryBulk(instances, options);
             });
-            if (temporalizeOptions.blocking) {
-                return queryAll;
-            }
         }
+    };
+    const afterUpdateHook = (instances, options) => {
+        insertHook(instances, options);
     };
     const afterDestroyHook = (obj, options) => {
         options.destroyOperation = true;
@@ -220,7 +226,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     };
     model.addHook('afterCreate', insertHook);
     model.addHook('afterBulkCreate', insertBulkHook);
-    model.addHook('afterUpdate', insertHook);
+    model.addHook('afterUpdate', afterUpdateHook);
     model.addHook('afterBulkUpdate', insertBulkHook);
     model.addHook('afterDestroy', afterDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
