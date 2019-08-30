@@ -316,7 +316,7 @@ describe('Test sequelize-temporalize', function () {
     }
     function freshDBWithSeparateHistoryDB() {
         return newDB(false, {
-            allowTransactions: false,
+            // allowTransactions: false,
             test: { separate: true }
         });
     }
@@ -337,6 +337,7 @@ describe('Test sequelize-temporalize', function () {
         // wrapped, chainable promise
         return function (obj) {
             return modelHistory.count(opts).then(count => {
+                console.log('Count: ' + count);
                 assert.equal(n, count, 'history entries ' + modelHistory.name);
                 return obj;
             });
@@ -346,16 +347,16 @@ describe('Test sequelize-temporalize', function () {
     function test() {
         describe('Separate DB Tests', function () {
             beforeEach(freshDBWithSeparateHistoryDB);
-            it('onUpdate/onDestroy: should save to the historyDB', function () {
+            it('onUpdate/onDestroy: should save to the historyDB 1', function () {
                 return sequelize.models.User.create()
-                    .then(assertCount(sequelizeHist.models.UserHistory, 0))
+                    .then(assertCount(sequelizeHist.models.UserHistory, 1))
                     .then(user => {
                     user.name = 'foo';
                     return user.save();
                 })
-                    .then(assertCount(sequelizeHist.models.UserHistory, 1))
+                    .then(assertCount(sequelizeHist.models.UserHistory, 2))
                     .then(user => user.destroy())
-                    .then(assertCount(sequelizeHist.models.UserHistory, 2));
+                    .then(assertCount(sequelizeHist.models.UserHistory, 3));
             });
             it('revert on failed transactions', function () {
                 return sequelize
@@ -363,15 +364,15 @@ describe('Test sequelize-temporalize', function () {
                     .then(t => {
                     var opts = { transaction: t };
                     return sequelize.models.User.create({ name: 'not foo' })
-                        .then(assertCount(sequelizeHist.models.UserHistory, 0))
+                        .then(assertCount(sequelizeHist.models.UserHistory, 1))
                         .then(user => {
                         user.name = 'foo';
                         user.save(opts);
                     })
-                        .then(assertCount(sequelizeHist.models.UserHistory, 1))
+                        .then(assertCount(sequelizeHist.models.UserHistory, 2))
                         .then(() => t.rollback());
                 })
-                    .then(assertCount(sequelizeHist.models.UserHistory, 1));
+                    .then(assertCount(sequelizeHist.models.UserHistory, 2));
             });
             it('should archive every entry', function () {
                 return sequelize.models.User.bulkCreate([
