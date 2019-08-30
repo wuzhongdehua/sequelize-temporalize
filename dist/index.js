@@ -133,13 +133,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     }
     modelHistoryOutput.originModel = model;
     modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
-    function transformToHistoryEntry(instance, options) {
+    function transformToHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
         const dataValues = lodash_1.default.cloneDeep(instance.dataValues);
         dataValues.archivedAt = instance.dataValues.updatedAt;
-        if (options.restoreOperation) {
+        if (restoreOperation) {
             dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
         }
-        if (options.destroyOperation) {
+        if (destroyOperation) {
             // If paranoid is true, use the deleted value
             dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
         }
@@ -153,9 +153,12 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         }
         return dataValues;
     }
-    function createHistoryEntry(instance, options) {
+    function createHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
         return __awaiter(this, void 0, void 0, function* () {
-            const dataValues = transformToHistoryEntry(instance, options);
+            const dataValues = transformToHistoryEntry(instance, options, {
+                destroyOperation,
+                restoreOperation
+            });
             const historyRecord = modelHistoryOutput.create(dataValues, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
@@ -166,10 +169,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             }
         });
     }
-    function createHistoryEntryBulk(instances, options) {
+    function createHistoryEntryBulk(instances, options, { destroyOperation, restoreOperation }) {
         return __awaiter(this, void 0, void 0, function* () {
             const dataValuesArr = instances.map(instance => {
-                return transformToHistoryEntry(instance, options);
+                return transformToHistoryEntry(instance, options, {
+                    destroyOperation,
+                    restoreOperation
+                });
             });
             const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
                 transaction: temporalizeOptions.allowTransactions
@@ -181,53 +187,79 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             }
         });
     }
-    const insertHook = function (obj, options) {
-        return model
-            .findOne({
-            where: { id: obj.id },
-            transaction: options.transaction,
-            paranoid: false
-        })
-            .then(function (instance) {
-            return createHistoryEntry(instance, options);
+    const createHook = function (obj, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return model
+                .findOne({
+                where: { id: obj.id },
+                transaction: options.transaction,
+                paranoid: false
+            })
+                .then(function (instance) {
+                return createHistoryEntry(instance, options, {});
+            });
         });
     };
-    const insertBulkHook = function (options) {
+    const createBulkHook = function (options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!options.individualHooks) {
+                yield model
+                    .findAll({
+                    where: options.where,
+                    transaction: options.transaction,
+                    paranoid: false
+                })
+                    .then(function (instances) {
+                    return createHistoryEntryBulk(instances, options, {});
+                });
+            }
+        });
+    };
+    const afterUpdateHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
+        createHistoryEntry(instances, options, {});
+    });
+    const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, { destroyOperation: true });
+    });
+    const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        const destroyOperation = true;
         if (!options.individualHooks) {
-            const queryAll = model
+            yield model
                 .findAll({
                 where: options.where,
                 transaction: options.transaction,
                 paranoid: false
             })
                 .then(function (instances) {
-                return createHistoryEntryBulk(instances, options);
+                return createHistoryEntryBulk(instances, options, {
+                    destroyOperation: true
+                });
             });
         }
-    };
-    const afterUpdateHook = (instances, options) => {
-        insertHook(instances, options);
-    };
-    const afterDestroyHook = (obj, options) => {
-        options.destroyOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkDestroyHook = options => {
-        options.destroyOperation = true;
-        return insertBulkHook(options);
-    };
-    const afterRestoreHook = (obj, options) => {
+    });
+    const afterRestoreHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, { destroyOperation: true });
+    });
+    const afterBulkRestoreHook = (options) => __awaiter(this, void 0, void 0, function* () {
         options.restoreOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkRestoreHook = options => {
-        options.restoreOperation = true;
-        return insertBulkHook(options);
-    };
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterBulkCreate', insertBulkHook);
+        if (!options.individualHooks) {
+            yield model
+                .findAll({
+                where: options.where,
+                transaction: options.transaction,
+                paranoid: false
+            })
+                .then(function (instances) {
+                return createHistoryEntryBulk(instances, options, {
+                    destroyOperation: true
+                });
+            });
+        }
+    });
+    model.addHook('afterCreate', createHook);
+    model.addHook('afterBulkCreate', createBulkHook);
     model.addHook('afterUpdate', afterUpdateHook);
-    model.addHook('afterBulkUpdate', insertBulkHook);
+    model.addHook('afterBulkUpdate', createBulkHook);
     model.addHook('afterDestroy', afterDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
     model.addHook('afterRestore', afterRestoreHook);
