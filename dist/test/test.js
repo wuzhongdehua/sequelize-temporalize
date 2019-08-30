@@ -1,10 +1,17 @@
 "use strict";
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = require("../index");
-const Sequelize = require('sequelize');
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const fs = require('fs');
+const sequelize_1 = require("sequelize");
+const chai = __importStar(require("chai"));
+const chaiAsPromised = __importStar(require("chai-as-promised"));
+const fs = __importStar(require("fs"));
 chai.use(chaiAsPromised);
 const assert = chai.assert;
 const eventually = assert.eventually;
@@ -25,7 +32,7 @@ describe('Test sequelize-temporalize', function () {
             fs.unlinkSync(dbFile);
         }
         catch (_a) { }
-        sequelize = new Sequelize('', '', '', {
+        sequelize = new sequelize_1.Sequelize('', '', '', {
             dialect: 'sqlite',
             storage: dbFile,
             logging: false //console.log
@@ -37,27 +44,27 @@ describe('Test sequelize-temporalize', function () {
                 fs.unlinkSync(dbFile2);
             }
             catch (_b) { }
-            sequelizeHist = new Sequelize('', '', '', {
+            sequelizeHist = new sequelize_1.Sequelize('', '', '', {
                 dialect: 'sqlite',
                 storage: dbFile2,
                 logging: false //console.log
             });
         }
         //Define origin models
-        const User = sequelize.define('User', { name: Sequelize.TEXT }, { paranoid: paranoid || false });
+        const User = sequelize.define('User', { name: sequelize_1.DataTypes.TEXT }, { paranoid: paranoid || false });
         const Creation = sequelize.define('Creation', {
-            name: Sequelize.TEXT,
-            user: Sequelize.INTEGER,
-            user2: Sequelize.INTEGER
+            name: sequelize_1.DataTypes.TEXT,
+            user: sequelize_1.DataTypes.INTEGER,
+            user2: sequelize_1.DataTypes.INTEGER
         }, { paranoid: paranoid || false });
-        const Tag = sequelize.define('Tag', { name: Sequelize.TEXT }, { paranoid: paranoid || false });
+        const Tag = sequelize.define('Tag', { name: sequelize_1.DataTypes.TEXT }, { paranoid: paranoid || false });
         const Event = sequelize.define('Event', {
-            name: Sequelize.TEXT,
-            creation: Sequelize.INTEGER
+            name: sequelize_1.DataTypes.TEXT,
+            creation: sequelize_1.DataTypes.INTEGER
         }, { paranoid: paranoid || false });
         const CreationTag = sequelize.define('CreationTag', {
-            creation: Sequelize.INTEGER,
-            tag: Sequelize.INTEGER
+            creation: sequelize_1.DataTypes.INTEGER,
+            tag: sequelize_1.DataTypes.INTEGER
         }, { paranoid: paranoid || false });
         //Associate models
         //1.* with 2 association to same table
@@ -955,7 +962,7 @@ describe('Test sequelize-temporalize', function () {
             it("shouldn't delete instance methods", function () {
                 const Fruit = index_1.Temporalize({
                     model: sequelize.define('Fruit', {
-                        name: Sequelize.TEXT
+                        name: sequelize_1.DataTypes.TEXT
                     }),
                     sequelize,
                     temporalizeOptions: {}
@@ -974,7 +981,7 @@ describe('Test sequelize-temporalize', function () {
             it("shouldn't interfere with hooks of the model", function () {
                 var triggered = 0;
                 const Fruit = index_1.Temporalize({
-                    model: sequelize.define('Fruit', { name: Sequelize.TEXT }, {
+                    model: sequelize.define('Fruit', { name: sequelize_1.DataTypes.TEXT }, {
                         hooks: {
                             beforeCreate: function () {
                                 triggered++;
@@ -994,7 +1001,7 @@ describe('Test sequelize-temporalize', function () {
                 const Fruit = index_1.Temporalize({
                     model: sequelize.define('Fruit', {
                         name: {
-                            type: Sequelize.TEXT,
+                            type: sequelize_1.DataTypes.TEXT,
                             set: function () {
                                 triggered++;
                             }

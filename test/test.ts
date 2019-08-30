@@ -1,8 +1,8 @@
 import { Temporalize } from '../index';
-const Sequelize = require('sequelize');
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-const fs = require('fs');
+import { Sequelize, DataTypes } from 'sequelize';
+import * as chai from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
+import * as fs from 'fs';
 chai.use(chaiAsPromised);
 const assert = chai.assert;
 const eventually = assert.eventually;
@@ -55,36 +55,36 @@ describe('Test sequelize-temporalize', function() {
     //Define origin models
     const User = sequelize.define(
       'User',
-      { name: Sequelize.TEXT },
+      { name: DataTypes.TEXT },
       { paranoid: paranoid || false }
     );
     const Creation = sequelize.define(
       'Creation',
       {
-        name: Sequelize.TEXT,
-        user: Sequelize.INTEGER,
-        user2: Sequelize.INTEGER
+        name: DataTypes.TEXT,
+        user: DataTypes.INTEGER,
+        user2: DataTypes.INTEGER
       },
       { paranoid: paranoid || false }
     );
     const Tag = sequelize.define(
       'Tag',
-      { name: Sequelize.TEXT },
+      { name: DataTypes.TEXT },
       { paranoid: paranoid || false }
     );
     const Event = sequelize.define(
       'Event',
       {
-        name: Sequelize.TEXT,
-        creation: Sequelize.INTEGER
+        name: DataTypes.TEXT,
+        creation: DataTypes.INTEGER
       },
       { paranoid: paranoid || false }
     );
     const CreationTag = sequelize.define(
       'CreationTag',
       {
-        creation: Sequelize.INTEGER,
-        tag: Sequelize.INTEGER
+        creation: DataTypes.INTEGER,
+        tag: DataTypes.INTEGER
       },
       { paranoid: paranoid || false }
     );
@@ -1259,7 +1259,7 @@ describe('Test sequelize-temporalize', function() {
       it("shouldn't delete instance methods", function() {
         const Fruit = Temporalize({
           model: sequelize.define('Fruit', {
-            name: Sequelize.TEXT
+            name: DataTypes.TEXT
           }),
           sequelize,
           temporalizeOptions: {}
@@ -1282,7 +1282,7 @@ describe('Test sequelize-temporalize', function() {
         const Fruit = Temporalize({
           model: sequelize.define(
             'Fruit',
-            { name: Sequelize.TEXT },
+            { name: DataTypes.TEXT },
             {
               hooks: {
                 beforeCreate: function() {
@@ -1305,7 +1305,7 @@ describe('Test sequelize-temporalize', function() {
         const Fruit = Temporalize({
           model: sequelize.define('Fruit', {
             name: {
-              type: Sequelize.TEXT,
+              type: DataTypes.TEXT,
               set: function() {
                 triggered++;
               }
