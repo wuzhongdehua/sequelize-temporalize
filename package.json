@@ -24,7 +24,7 @@
     "paranoid",
     "historical"
   ],
-  "author": "greenify <greenify@notsharingmy.info> (https://github.com/greenify)",
+  "author": "James Jansson <do_not_send_email@email.info> (https://github.com/jamesajansson)",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/JamesJansson/sequelize-temporalize/issues"
