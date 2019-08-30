@@ -1,4 +1,4 @@
-const Historical = require('..');
+import { Temporalize } from '../index';
 const Sequelize = require('sequelize');
 const chai = require('chai');
 const chaiAsPromised = require('chai-as-promised');
@@ -130,16 +130,32 @@ describe('Test sequelize-temporalize', function() {
       otherKey: 'tag'
     });
 
-    //Historyize
-    Historical(User, separate == true ? sequelizeHist : sequelize, options);
-    Historical(Creation, separate == true ? sequelizeHist : sequelize, options);
-    Historical(Tag, separate == true ? sequelizeHist : sequelize, options);
-    Historical(Event, separate == true ? sequelizeHist : sequelize, options);
-    Historical(
-      CreationTag,
-      separate == true ? sequelizeHist : sequelize,
-      options
-    );
+    // Temporalize
+    Temporalize({
+      model: User,
+      sequelize: separate == true ? sequelizeHist : sequelize,
+      temporalizeOptions: options
+    });
+    Temporalize({
+      model: Creation,
+      sequelize: separate == true ? sequelizeHist : sequelize,
+      temporalizeOptions: options
+    });
+    Temporalize({
+      model: Tag,
+      sequelize: separate == true ? sequelizeHist : sequelize,
+      temporalizeOptions: options
+    });
+    Temporalize({
+      model: Event,
+      sequelize: separate == true ? sequelizeHist : sequelize,
+      temporalizeOptions: options
+    });
+    Temporalize({
+      model: CreationTag,
+      sequelize: separate == true ? sequelizeHist : sequelize,
+      temporalizeOptions: options
+    });
 
     return sequelize.sync({ force: true }).then(s =>
       separate == true
@@ -397,7 +413,7 @@ describe('Test sequelize-temporalize', function() {
     };
   }
 
-  // test();
+  test();
 
   function test() {
     describe('Separate DB Tests', function() {
@@ -1241,12 +1257,13 @@ describe('Test sequelize-temporalize', function() {
     describe('interference with the original model', function() {
       beforeEach(freshDB);
       it("shouldn't delete instance methods", function() {
-        const Fruit = Historical(
-          sequelize.define('Fruit', {
+        const Fruit = Temporalize({
+          model: sequelize.define('Fruit', {
             name: Sequelize.TEXT
           }),
-          sequelize
-        );
+          sequelize,
+          temporalizeOptions: {}
+        });
         Fruit.prototype.sayHi = () => {
           return 2;
         };
@@ -1262,8 +1279,8 @@ describe('Test sequelize-temporalize', function() {
 
       it("shouldn't interfere with hooks of the model", function() {
         var triggered = 0;
-        const Fruit = Historical(
-          sequelize.define(
+        const Fruit = Temporalize({
+          model: sequelize.define(
             'Fruit',
             { name: Sequelize.TEXT },
             {
@@ -1274,8 +1291,9 @@ describe('Test sequelize-temporalize', function() {
               }
             }
           ),
-          sequelize
-        );
+          sequelize,
+          temporalizeOptions: {}
+        });
         return sequelize
           .sync()
           .then(() => Fruit.create())
@@ -1284,8 +1302,8 @@ describe('Test sequelize-temporalize', function() {
 
       it("shouldn't interfere with setters", function() {
         var triggered = 0;
-        const Fruit = Historical(
-          sequelize.define('Fruit', {
+        const Fruit = Temporalize({
+          model: sequelize.define('Fruit', {
             name: {
               type: Sequelize.TEXT,
               set: function() {
@@ -1293,8 +1311,9 @@ describe('Test sequelize-temporalize', function() {
               }
             }
           }),
-          sequelize
-        );
+          sequelize,
+          temporalizeOptions: {}
+        });
         return sequelize
           .sync()
           .then(() => Fruit.create({ name: 'apple' }))
