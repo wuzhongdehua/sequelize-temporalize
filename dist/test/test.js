@@ -6,13 +6,16 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = require("../index");
 const sequelize_1 = require("sequelize");
 const chai = __importStar(require("chai"));
-const chaiAsPromised = __importStar(require("chai-as-promised"));
+const chai_as_promised_1 = __importDefault(require("chai-as-promised"));
 const fs = __importStar(require("fs"));
-chai.use(chaiAsPromised);
+chai.use(chai_as_promised_1.default);
 const assert = chai.assert;
 const eventually = assert.eventually;
 describe('Test sequelize-temporalize', function () {
