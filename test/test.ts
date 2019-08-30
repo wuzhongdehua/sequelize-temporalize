@@ -7,11 +7,11 @@ chai.use(chaiAsPromised);
 const assert = chai.assert;
 const eventually = assert.eventually;
 
-describe('Read-only API', function() {
+describe('Test sequelize-temporalize', function() {
   var sequelize;
   var sequelizeHist;
 
-  function newDB(paranoid, options) {
+  function newDB(paranoid?, options?) {
     if (sequelize) {
       sequelize.close();
       sequelize = null;
@@ -387,7 +387,7 @@ describe('Read-only API', function() {
     });
   }
 
-  function assertCount(modelHistory, n, opts) {
+  function assertCount(modelHistory, n, opts?) {
     // wrapped, chainable promise
     return function(obj) {
       return modelHistory.count(opts).then(count => {
@@ -1241,7 +1241,7 @@ describe('Read-only API', function() {
     describe('interference with the original model', function() {
       beforeEach(freshDB);
       it("shouldn't delete instance methods", function() {
-        Fruit = Historical(
+        const Fruit = Historical(
           sequelize.define('Fruit', {
             name: Sequelize.TEXT
           }),
@@ -1262,7 +1262,7 @@ describe('Read-only API', function() {
 
       it("shouldn't interfere with hooks of the model", function() {
         var triggered = 0;
-        Fruit = Historical(
+        const Fruit = Historical(
           sequelize.define(
             'Fruit',
             { name: Sequelize.TEXT },
@@ -1284,7 +1284,7 @@ describe('Read-only API', function() {
 
       it("shouldn't interfere with setters", function() {
         var triggered = 0;
-        Fruit = Historical(
+        const Fruit = Historical(
           sequelize.define('Fruit', {
             name: {
               type: Sequelize.TEXT,

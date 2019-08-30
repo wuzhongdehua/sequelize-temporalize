@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "mocha"
+    "test": "mocha --exit --bail --require source-map-support/register dist/test/"
   },
   "repository": {
     "type": "git",
@@ -31,7 +31,9 @@
   },
   "homepage": "https://github.com/JamesJansson/sequelize-temporalize#readme",
   "dependencies": {
-    "lodash": "^4.17.11"
+    "@types/mocha": "^5.2.7",
+    "lodash": "^4.17.11",
+    "source-map-support": "^0.5.13"
   },
   "devDependencies": {
     "chai": "^4.2.0",
