@@ -232,7 +232,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         }
     });
     const afterRestoreHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
-        return createHistoryEntry(instance, options, { destroyOperation: true });
+        return createHistoryEntry(instance, options, { restoreOperation: true });
     });
     const afterBulkRestoreHook = (options) => __awaiter(this, void 0, void 0, function* () {
         options.restoreOperation = true;
@@ -245,7 +245,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             })
                 .then(function (instances) {
                 return createHistoryEntryBulk(instances, options, {
-                    destroyOperation: true
+                    restoreOperation: true
                 });
             });
         }

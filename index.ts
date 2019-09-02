@@ -287,7 +287,7 @@ export function Temporalize({
   };
 
   const afterRestoreHook = async (instance, options) => {
-    return createHistoryEntry(instance, options, { destroyOperation: true });
+    return createHistoryEntry(instance, options, { restoreOperation: true });
   };
 
   const afterBulkRestoreHook = async options => {
@@ -301,7 +301,7 @@ export function Temporalize({
         })
         .then(function(instances) {
           return createHistoryEntryBulk(instances, options, {
-            destroyOperation: true
+            restoreOperation: true
           });
         });
     }
