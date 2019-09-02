@@ -210,8 +210,12 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, {});
     });
-    const afterBulkUpdateHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
-        return createHistoryEntryBulk(instances, options, {});
+    const afterBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        if (!options.individualHooks) {
+            throw new Error('Bulk updates with history tracking is not currently supported, unless options.individualHooks=true. Please use individualHooks=true in all update operations.');
+            // Functionality using true bulkUpdates will not be possible until this
+            // issue is resolved https://github.com/sequelize/sequelize/issues/10202
+        }
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, { destroyOperation: true });

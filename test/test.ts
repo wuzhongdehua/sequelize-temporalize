@@ -419,7 +419,10 @@ describe('Test sequelize-temporalize', function() {
         ])
           .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() =>
-            sequelize.models.User.update({ name: 'updated-foo' }, { where: {} })
+            sequelize.models.User.update(
+              { name: 'updated-foo' },
+              { where: {}, individualHooks: true }
+            )
           )
           .then(assertCount(sequelize.models.UserHistory, 4));
       });

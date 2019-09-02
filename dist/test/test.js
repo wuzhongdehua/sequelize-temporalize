@@ -352,7 +352,7 @@ describe('Test sequelize-temporalize', function () {
                     { name: 'foo2' }
                 ])
                     .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.User.update({ name: 'updated-foo' }, { where: {} }))
+                    .then(() => sequelize.models.User.update({ name: 'updated-foo' }, { where: {}, individualHooks: true }))
                     .then(assertCount(sequelize.models.UserHistory, 4));
             });
             it('should revert under transactions', function () {
