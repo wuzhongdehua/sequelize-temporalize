@@ -9,20 +9,12 @@ const eventually = assert.eventually;
 
 describe('Test sequelize-temporalize', function() {
   var sequelize;
-  var sequelizeHist;
 
   function newDB(paranoid?, options?) {
     if (sequelize) {
       sequelize.close();
       sequelize = null;
     }
-
-    const separate = !(
-      !options ||
-      !options.test ||
-      !options.test.separate ||
-      options.test.separate == false
-    );
 
     const dbFile = __dirname + '/.test.sqlite';
 
@@ -35,22 +27,6 @@ describe('Test sequelize-temporalize', function() {
       storage: dbFile,
       logging: false //console.log
     });
-
-    if (separate == true) {
-      console.warn('Test is using separate DBs');
-
-      const dbFile2 = __dirname + '/.test2.sqlite';
-
-      try {
-        fs.unlinkSync(dbFile2);
-      } catch {}
-
-      sequelizeHist = new Sequelize('', '', '', {
-        dialect: 'sqlite',
-        storage: dbFile2,
-        logging: false //console.log
-      });
-    }
 
     //Define origin models
     const User = sequelize.define(
@@ -133,37 +109,31 @@ describe('Test sequelize-temporalize', function() {
     // Temporalize
     Temporalize({
       model: User,
-      sequelize: separate == true ? sequelizeHist : sequelize,
+      sequelize,
       temporalizeOptions: options
     });
     Temporalize({
       model: Creation,
-      sequelize: separate == true ? sequelizeHist : sequelize,
+      sequelize,
       temporalizeOptions: options
     });
     Temporalize({
       model: Tag,
-      sequelize: separate == true ? sequelizeHist : sequelize,
+      sequelize,
       temporalizeOptions: options
     });
     Temporalize({
       model: Event,
-      sequelize: separate == true ? sequelizeHist : sequelize,
+      sequelize,
       temporalizeOptions: options
     });
     Temporalize({
       model: CreationTag,
-      sequelize: separate == true ? sequelizeHist : sequelize,
+      sequelize,
       temporalizeOptions: options
     });
 
-    return sequelize.sync({ force: true }).then(s =>
-      separate == true
-        ? sequelizeHist.sync({
-            force: true
-          })
-        : s
-    );
+    return sequelize.sync({ force: true });
   }
 
   //Adding 3 tags, 2 creations, 2 events, 2 user
@@ -380,13 +350,6 @@ describe('Test sequelize-temporalize', function() {
     return newDB();
   }
 
-  function freshDBWithSeparateHistoryDB() {
-    return newDB(false, {
-      // allowTransactions: false,
-      test: { separate: true }
-    });
-  }
-
   function freshDBWithAssociations() {
     return newDB(false, {
       addAssociations: true
@@ -417,19 +380,19 @@ describe('Test sequelize-temporalize', function() {
   test();
 
   function test() {
-    describe('Separate DB Tests', function() {
-      beforeEach(freshDBWithSeparateHistoryDB);
+    describe('DB Tests', function() {
+      beforeEach(freshDB);
 
       it('onUpdate/onDestroy: should save to the historyDB 1', function() {
         return sequelize.models.User.create()
-          .then(assertCount(sequelizeHist.models.UserHistory, 1))
+          .then(assertCount(sequelize.models.UserHistory, 1))
           .then(user => {
             user.name = 'foo';
             return user.save();
           })
-          .then(assertCount(sequelizeHist.models.UserHistory, 2))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(user => user.destroy())
-          .then(assertCount(sequelizeHist.models.UserHistory, 3));
+          .then(assertCount(sequelize.models.UserHistory, 3));
       });
 
       it('revert on failed transactions', function() {
@@ -438,15 +401,15 @@ describe('Test sequelize-temporalize', function() {
           .then(t => {
             var opts = { transaction: t };
             return sequelize.models.User.create({ name: 'not foo' })
-              .then(assertCount(sequelizeHist.models.UserHistory, 1))
+              .then(assertCount(sequelize.models.UserHistory, 1))
               .then(user => {
                 user.name = 'foo';
                 user.save(opts);
               })
-              .then(assertCount(sequelizeHist.models.UserHistory, 2))
+              .then(assertCount(sequelize.models.UserHistory, 2))
               .then(() => t.rollback());
           })
-          .then(assertCount(sequelizeHist.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 2));
       });
 
       it('should archive every entry', function() {
@@ -454,11 +417,11 @@ describe('Test sequelize-temporalize', function() {
           { name: 'foo1' },
           { name: 'foo2' }
         ])
-          .then(assertCount(sequelizeHist.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 0))
           .then(() =>
             sequelize.models.User.update({ name: 'updated-foo' }, { where: {} })
           )
-          .then(assertCount(sequelizeHist.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 2));
       });
 
       it('should revert under transactions', function() {
@@ -470,7 +433,7 @@ describe('Test sequelize-temporalize', function() {
               [{ name: 'foo1' }, { name: 'foo2' }],
               opts
             )
-              .then(assertCount(sequelizeHist.models.UserHistory, 0))
+              .then(assertCount(sequelize.models.UserHistory, 0))
               .then(() =>
                 sequelize.models.User.update(
                   { name: 'updated-foo' },
@@ -480,10 +443,10 @@ describe('Test sequelize-temporalize', function() {
                   }
                 )
               )
-              .then(assertCount(sequelizeHist.models.UserHistory, 2))
+              .then(assertCount(sequelize.models.UserHistory, 2))
               .then(() => t.rollback());
           })
-          .then(assertCount(sequelizeHist.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 2));
       });
 
       it('should revert on failed transactions, even when using after hooks', function() {
@@ -496,10 +459,10 @@ describe('Test sequelize-temporalize', function() {
 
             return sequelize.models.User.create({ name: 'test' }, options)
               .then(user => user.destroy(options))
-              .then(assertCount(sequelizeHist.models.UserHistory, 1))
+              .then(assertCount(sequelize.models.UserHistory, 1))
               .then(() => transaction.rollback());
           })
-          .then(assertCount(sequelizeHist.models.UserHistory, 1));
+          .then(assertCount(sequelize.models.UserHistory, 1));
       });
     });
 
