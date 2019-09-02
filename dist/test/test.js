@@ -339,12 +339,12 @@ describe('Test sequelize-temporalize', function () {
                         .then(assertCount(sequelize.models.UserHistory, 1))
                         .then(user => {
                         user.name = 'foo';
-                        user.save(opts);
+                        return user.save(opts);
                     })
-                        .then(assertCount(sequelize.models.UserHistory, 2))
+                        .then(assertCount(sequelize.models.UserHistory, 2, opts))
                         .then(() => t.rollback());
                 })
-                    .then(assertCount(sequelize.models.UserHistory, 2));
+                    .then(assertCount(sequelize.models.UserHistory, 1));
             });
             it('should archive every entry', function () {
                 return sequelize.models.User.bulkCreate([

@@ -216,7 +216,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         });
     };
     const afterUpdateHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
-        createHistoryEntry(instances, options, {});
+        return createHistoryEntry(instances, options, {});
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, { destroyOperation: true });
