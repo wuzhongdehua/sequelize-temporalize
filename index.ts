@@ -240,7 +240,7 @@ export function Temporalize({
     }
   }
 
-  const createHook = async function(obj, options) {
+  const afterCreateHook = async function(obj, options) {
     return model
       .findOne({
         where: { id: obj.id },
@@ -252,7 +252,7 @@ export function Temporalize({
       });
   };
 
-  const createBulkHook = async function(instances, options) {
+  const afterBulkCreateHook = async function(instances, options) {
     if (!options.individualHooks) {
       return createHistoryEntryBulk(instances, options, {});
     }
@@ -262,7 +262,7 @@ export function Temporalize({
     return createHistoryEntry(instance, options, {});
   };
 
-  const afterUpdateBulkHook = async (instances, options) => {
+  const afterBulkUpdateHook = async (instances, options) => {
     return createHistoryEntryBulk(instances, options, {});
   };
 
@@ -271,7 +271,6 @@ export function Temporalize({
   };
 
   const afterBulkDestroyHook = async options => {
-    const destroyOperation = true;
     if (!options.individualHooks) {
       await model
         .findAll({
@@ -308,10 +307,10 @@ export function Temporalize({
     }
   };
 
-  model.addHook('afterCreate', createHook);
-  model.addHook('afterBulkCreate', createBulkHook);
+  model.addHook('afterCreate', afterCreateHook);
+  model.addHook('afterBulkCreate', afterBulkCreateHook);
   model.addHook('afterUpdate', afterUpdateHook);
-  model.addHook('afterBulkUpdate', afterUpdateBulkHook);
+  model.addHook('afterBulkUpdate', afterBulkUpdateHook);
   model.addHook('afterDestroy', afterDestroyHook);
   model.addHook('afterBulkDestroy', afterBulkDestroyHook);
   model.addHook('afterRestore', afterRestoreHook);

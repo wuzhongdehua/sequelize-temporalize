@@ -187,7 +187,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             }
         });
     }
-    const createHook = function (obj, options) {
+    const afterCreateHook = function (obj, options) {
         return __awaiter(this, void 0, void 0, function* () {
             return model
                 .findOne({
@@ -200,7 +200,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             });
         });
     };
-    const createBulkHook = function (instances, options) {
+    const afterBulkCreateHook = function (instances, options) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!options.individualHooks) {
                 return createHistoryEntryBulk(instances, options, {});
@@ -210,14 +210,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, {});
     });
-    const afterUpdateBulkHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
+    const afterBulkUpdateHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntryBulk(instances, options, {});
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, { destroyOperation: true });
     });
     const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
-        const destroyOperation = true;
         if (!options.individualHooks) {
             yield model
                 .findAll({
@@ -251,10 +250,10 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             });
         }
     });
-    model.addHook('afterCreate', createHook);
-    model.addHook('afterBulkCreate', createBulkHook);
+    model.addHook('afterCreate', afterCreateHook);
+    model.addHook('afterBulkCreate', afterBulkCreateHook);
     model.addHook('afterUpdate', afterUpdateHook);
-    model.addHook('afterBulkUpdate', afterUpdateBulkHook);
+    model.addHook('afterBulkUpdate', afterBulkUpdateHook);
     model.addHook('afterDestroy', afterDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
     model.addHook('afterRestore', afterRestoreHook);
