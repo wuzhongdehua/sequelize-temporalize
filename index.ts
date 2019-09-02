@@ -252,22 +252,18 @@ export function Temporalize({
       });
   };
 
-  const createBulkHook = async function(options) {
+  const createBulkHook = async function(instances, options) {
     if (!options.individualHooks) {
-      await model
-        .findAll({
-          where: options.where,
-          transaction: options.transaction,
-          paranoid: false
-        })
-        .then(function(instances) {
-          return createHistoryEntryBulk(instances, options, {});
-        });
+      return createHistoryEntryBulk(instances, options, {});
     }
   };
 
-  const afterUpdateHook = async (instances, options) => {
-    return createHistoryEntry(instances, options, {});
+  const afterUpdateHook = async (instance, options) => {
+    return createHistoryEntry(instance, options, {});
+  };
+
+  const afterUpdateBulkHook = async (instances, options) => {
+    return createHistoryEntryBulk(instances, options, {});
   };
 
   const afterDestroyHook = async (instance, options) => {
@@ -315,7 +311,7 @@ export function Temporalize({
   model.addHook('afterCreate', createHook);
   model.addHook('afterBulkCreate', createBulkHook);
   model.addHook('afterUpdate', afterUpdateHook);
-  model.addHook('afterBulkUpdate', createBulkHook);
+  model.addHook('afterBulkUpdate', afterUpdateBulkHook);
   model.addHook('afterDestroy', afterDestroyHook);
   model.addHook('afterBulkDestroy', afterBulkDestroyHook);
   model.addHook('afterRestore', afterRestoreHook);

@@ -417,11 +417,11 @@ describe('Test sequelize-temporalize', function() {
           { name: 'foo1' },
           { name: 'foo2' }
         ])
-          .then(assertCount(sequelize.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() =>
             sequelize.models.User.update({ name: 'updated-foo' }, { where: {} })
           )
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 4));
       });
 
       it('should revert under transactions', function() {
@@ -434,6 +434,7 @@ describe('Test sequelize-temporalize', function() {
               opts
             )
               .then(assertCount(sequelize.models.UserHistory, 0))
+              .then(assertCount(sequelize.models.UserHistory, 2, opts))
               .then(() =>
                 sequelize.models.User.update(
                   { name: 'updated-foo' },
@@ -443,10 +444,11 @@ describe('Test sequelize-temporalize', function() {
                   }
                 )
               )
-              .then(assertCount(sequelize.models.UserHistory, 2))
+              .then(assertCount(sequelize.models.UserHistory, 0))
+              .then(assertCount(sequelize.models.UserHistory, 4, opts))
               .then(() => t.rollback());
           })
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 0));
       });
 
       it('should revert on failed transactions, even when using after hooks', function() {

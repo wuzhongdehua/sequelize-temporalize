@@ -200,23 +200,18 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             });
         });
     };
-    const createBulkHook = function (options) {
+    const createBulkHook = function (instances, options) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!options.individualHooks) {
-                yield model
-                    .findAll({
-                    where: options.where,
-                    transaction: options.transaction,
-                    paranoid: false
-                })
-                    .then(function (instances) {
-                    return createHistoryEntryBulk(instances, options, {});
-                });
+                return createHistoryEntryBulk(instances, options, {});
             }
         });
     };
-    const afterUpdateHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
-        return createHistoryEntry(instances, options, {});
+    const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, {});
+    });
+    const afterUpdateBulkHook = (instances, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntryBulk(instances, options, {});
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, { destroyOperation: true });
@@ -259,7 +254,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     model.addHook('afterCreate', createHook);
     model.addHook('afterBulkCreate', createBulkHook);
     model.addHook('afterUpdate', afterUpdateHook);
-    model.addHook('afterBulkUpdate', createBulkHook);
+    model.addHook('afterBulkUpdate', afterUpdateBulkHook);
     model.addHook('afterDestroy', afterDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
     model.addHook('afterRestore', afterRestoreHook);
