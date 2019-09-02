@@ -268,6 +268,7 @@ export function Temporalize({
 
   const afterUpdateHook = async (instances, options) => {
     createHistoryEntry(instances, options, {});
+    return createHistoryEntry(instances, options, {});
   };
 
   const afterDestroyHook = async (instance, options) => {
