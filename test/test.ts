@@ -460,9 +460,9 @@ describe('Test sequelize-temporalize', function() {
           .then(transaction => {
             const options = { transaction };
             return sequelize.models.User.create({ name: 'test' }, options)
-              .then(assertCount(sequelize.models.UserHistory, 1))
+              .then(assertCount(sequelize.models.UserHistory, 1, options))
               .then(user => user.destroy(options))
-              .then(assertCount(sequelize.models.UserHistory, 2))
+              .then(assertCount(sequelize.models.UserHistory, 2, options))
               .then(() => transaction.rollback());
           })
           .then(assertCount(sequelize.models.UserHistory, 0));
