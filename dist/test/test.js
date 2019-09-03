@@ -377,9 +377,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = {
-                        transaction: transaction
-                    };
+                    var options = { transaction };
                     return sequelize.models.User.create({ name: 'test' }, options)
                         .then(assertCount(sequelize.models.UserHistory, 1))
                         .then(user => user.destroy(options))
