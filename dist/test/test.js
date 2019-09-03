@@ -19,7 +19,7 @@ chai.use(chai_as_promised_1.default);
 const assert = chai.assert;
 const eventually = assert.eventually;
 describe('Test sequelize-temporalize', function () {
-    var sequelize;
+    let sequelize;
     function newDB(paranoid, options) {
         if (sequelize) {
             sequelize.close();
@@ -334,7 +334,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.create({ name: 'not foo' })
                         .then(assertCount(sequelize.models.UserHistory, 1))
                         .then(user => {
@@ -359,7 +359,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
                         .then(assertCount(sequelize.models.UserHistory, 0))
                         .then(assertCount(sequelize.models.UserHistory, 2, options))
@@ -377,7 +377,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.create({ name: 'test' }, options)
                         .then(assertCount(sequelize.models.UserHistory, 1))
                         .then(user => user.destroy(options))
@@ -813,7 +813,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.create({ name: 'not foo' }, options)
                         .then(assertCount(sequelize.models.UserHistory, 0, options))
                         .then(user => {
@@ -841,7 +841,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
                         .then(assertCount(sequelize.models.UserHistory, 0, options))
                         .then(() => sequelize.models.User.update({ name: 'updated-foo' }, {
@@ -872,7 +872,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
                         .then(assertCount(sequelize.models.UserHistory, 0, options))
                         .then(() => sequelize.models.User.destroy({
@@ -905,7 +905,7 @@ describe('Test sequelize-temporalize', function () {
                 return dataCreate()
                     .then(() => sequelize.transaction())
                     .then(transaction => {
-                    var options = { transaction };
+                    const options = { transaction };
                     assertCount(sequelize.models.UserHistory, 6, options);
                     return sequelize.models.User.destroy({
                         where: {},
@@ -922,13 +922,13 @@ describe('Test sequelize-temporalize', function () {
         describe('read-only ', function () {
             beforeEach(freshDB);
             it('should forbid updates', function () {
-                var userUpdate = sequelize.models.UserHistory.create({
+                const userUpdate = sequelize.models.UserHistory.create({
                     name: 'bla00'
                 }).then(uh => uh.update({ name: 'bla' }));
                 return assert.isRejected(userUpdate, Error, 'Validation error');
             });
             it('should forbid deletes', function () {
-                var userUpdate = sequelize.models.UserHistory.create({
+                const userUpdate = sequelize.models.UserHistory.create({
                     name: 'bla00'
                 }).then(uh => uh.destroy());
                 return assert.isRejected(userUpdate, Error, 'Validation error');
@@ -956,7 +956,7 @@ describe('Test sequelize-temporalize', function () {
                 });
             });
             it("shouldn't interfere with hooks of the model", function () {
-                var triggered = 0;
+                let triggered = 0;
                 const Fruit = index_1.Temporalize({
                     model: sequelize.define('Fruit', { name: sequelize_1.DataTypes.TEXT }, {
                         hooks: {
@@ -974,7 +974,7 @@ describe('Test sequelize-temporalize', function () {
                     .then(f => assert.equal(triggered, 1, 'hook trigger count'));
             });
             it("shouldn't interfere with setters", function () {
-                var triggered = 0;
+                let triggered = 0;
                 const Fruit = index_1.Temporalize({
                     model: sequelize.define('Fruit', {
                         name: {
@@ -1045,7 +1045,7 @@ describe('Test sequelize-temporalize', function () {
                 return sequelize
                     .transaction()
                     .then(transaction => {
-                    var options = {
+                    const options = {
                         transaction
                     };
                     return sequelize.models.User.create({ name: 'test' }, options)
