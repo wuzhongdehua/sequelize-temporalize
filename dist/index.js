@@ -21,7 +21,8 @@ const temporalizeDefaultOptions = {
     addAssociations: false,
     allowTransactions: true,
     logTransactionId: true,
-    logEventId: true
+    logEventId: true,
+    eventIdColumnName: 'eventId'
 };
 function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     temporalizeOptions = lodash_1.default.extend({}, temporalizeDefaultOptions, temporalizeOptions);
@@ -58,7 +59,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             defaultValue: Sequelize.NOW
         },
         transactionId: transactionIdAttr,
-        eventId: eventIdAttr
+        [temporalizeOptions.eventIdColumnName]: eventIdAttr
     };
     const excludedAttributes = [
         'Model',
@@ -147,10 +148,8 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         if (temporalizeOptions.logTransactionId && options.transaction) {
             dataValues.transactionId = getTransactionId(options.transaction);
         }
-        if (temporalizeOptions.logEventId &&
-            options.transaction &&
-            options.transaction.eventId) {
-            dataValues.eventId = options.transaction.eventId;
+        if (temporalizeOptions.logEventId && options.eventId) {
+            dataValues[temporalizeOptions.eventIdColumnName] = options.eventId;
         }
         return dataValues;
     }
@@ -329,7 +328,3 @@ function getTransactionId(transaction) {
     return boundGetId();
 }
 exports.getTransactionId = getTransactionId;
-function addEventIdToTransaction(eventId, transaction) {
-    transaction.eventId = eventId;
-}
-exports.addEventIdToTransaction = addEventIdToTransaction;

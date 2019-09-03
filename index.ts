@@ -9,7 +9,8 @@ const temporalizeDefaultOptions = {
   addAssociations: false,
   allowTransactions: true,
   logTransactionId: true,
-  logEventId: true
+  logEventId: true,
+  eventIdColumnName: 'eventId'
 };
 
 export function Temporalize({
@@ -71,7 +72,7 @@ export function Temporalize({
       defaultValue: Sequelize.NOW
     },
     transactionId: transactionIdAttr,
-    eventId: eventIdAttr
+    [temporalizeOptions.eventIdColumnName]: eventIdAttr
   };
 
   const excludedAttributes = [
@@ -185,12 +186,8 @@ export function Temporalize({
     if (temporalizeOptions.logTransactionId && options.transaction) {
       dataValues.transactionId = getTransactionId(options.transaction);
     }
-    if (
-      temporalizeOptions.logEventId &&
-      options.transaction &&
-      options.transaction.eventId
-    ) {
-      dataValues.eventId = options.transaction.eventId;
+    if (temporalizeOptions.logEventId && options.eventId) {
+      dataValues[temporalizeOptions.eventIdColumnName] = options.eventId;
     }
     return dataValues;
   }
@@ -406,8 +403,4 @@ export function getTransactionId(transaction) {
   }
   const boundGetId = getId.bind(transaction);
   return boundGetId();
-}
-
-export function addEventIdToTransaction(eventId: string, transaction) {
-  transaction.eventId = eventId;
 }
