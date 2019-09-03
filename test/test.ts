@@ -5,7 +5,6 @@ import chaiAsPromised from 'chai-as-promised';
 import * as fs from 'fs';
 chai.use(chaiAsPromised);
 const assert = chai.assert;
-const eventually = assert.eventually;
 
 describe('Test sequelize-temporalize', function() {
   let sequelize;
@@ -1210,13 +1209,14 @@ describe('Test sequelize-temporalize', function() {
           name: 'bla00'
         }).then(uh => uh.update({ name: 'bla' }));
 
+        // @ts-ignore
         return assert.isRejected(userUpdate, Error, 'Validation error');
       });
       it('should forbid deletes', function() {
         const userUpdate = sequelize.models.UserHistory.create({
           name: 'bla00'
         }).then(uh => uh.destroy());
-
+        // @ts-ignore
         return assert.isRejected(userUpdate, Error, 'Validation error');
       });
     });

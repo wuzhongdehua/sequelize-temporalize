@@ -17,7 +17,6 @@ const chai_as_promised_1 = __importDefault(require("chai-as-promised"));
 const fs = __importStar(require("fs"));
 chai.use(chai_as_promised_1.default);
 const assert = chai.assert;
-const eventually = assert.eventually;
 describe('Test sequelize-temporalize', function () {
     let sequelize;
     function newDB(paranoid, options) {
@@ -310,7 +309,7 @@ describe('Test sequelize-temporalize', function () {
         return function (obj) {
             return modelHistory.count(options).then(count => {
                 console.log('Count: ' + count);
-                assert.equal(n, count, 'history entries ' + modelHistory.name);
+                assert.equal(count, n, 'history entries ' + modelHistory.name);
                 return obj;
             });
         };
@@ -465,10 +464,10 @@ describe('Test sequelize-temporalize', function () {
                         return Promise.resolve('done');
                     });
                     //Check history data
-                    const userHistories = init.then(assertCount(sequelize.models.UserHistory, 6));
-                    const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 6));
-                    const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 9));
-                    const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 6));
+                    const userHistories = init.then(assertCount(sequelize.models.UserHistory, 8));
+                    const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 8));
+                    const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 12));
+                    const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 8));
                     const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 1));
                     return Promise.all([
                         creation,
@@ -488,7 +487,10 @@ describe('Test sequelize-temporalize', function () {
                         user,
                         userHistories,
                         userHistory
-                    ]);
+                    ]).catch(err => {
+                        console.log(err);
+                        throw err;
+                    });
                 });
             });
             describe('test there are associations are created between origin and history', function () {
@@ -925,12 +927,14 @@ describe('Test sequelize-temporalize', function () {
                 const userUpdate = sequelize.models.UserHistory.create({
                     name: 'bla00'
                 }).then(uh => uh.update({ name: 'bla' }));
+                // @ts-ignore
                 return assert.isRejected(userUpdate, Error, 'Validation error');
             });
             it('should forbid deletes', function () {
                 const userUpdate = sequelize.models.UserHistory.create({
                     name: 'bla00'
                 }).then(uh => uh.destroy());
+                // @ts-ignore
                 return assert.isRejected(userUpdate, Error, 'Validation error');
             });
         });

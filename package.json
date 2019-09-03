@@ -36,6 +36,7 @@
     "source-map-support": "^0.5.13"
   },
   "devDependencies": {
+    "@types/chai": "^4.2.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "mocha": "^6.1.4",
