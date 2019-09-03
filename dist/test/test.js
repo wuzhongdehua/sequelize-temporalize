@@ -333,8 +333,8 @@ describe('Test sequelize-temporalize', function () {
             it('revert on failed transactions', function () {
                 return sequelize
                     .transaction()
-                    .then(t => {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     return sequelize.models.User.create({ name: 'not foo' })
                         .then(assertCount(sequelize.models.UserHistory, 1))
                         .then(user => {
@@ -342,7 +342,7 @@ describe('Test sequelize-temporalize', function () {
                         return user.save(opts);
                     })
                         .then(assertCount(sequelize.models.UserHistory, 2, opts))
-                        .then(() => t.rollback());
+                        .then(() => transaction.rollback());
                 })
                     .then(assertCount(sequelize.models.UserHistory, 1));
             });
@@ -358,18 +358,18 @@ describe('Test sequelize-temporalize', function () {
             it('should revert under transactions', function () {
                 return sequelize
                     .transaction()
-                    .then(function (t) {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], opts)
                         .then(assertCount(sequelize.models.UserHistory, 0))
                         .then(assertCount(sequelize.models.UserHistory, 2, opts))
                         .then(() => sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
-                        transaction: t
+                        transaction
                     }))
                         .then(assertCount(sequelize.models.UserHistory, 0))
                         .then(assertCount(sequelize.models.UserHistory, 4, opts))
-                        .then(() => t.rollback());
+                        .then(() => transaction.rollback());
                 })
                     .then(assertCount(sequelize.models.UserHistory, 0));
             });
@@ -381,11 +381,12 @@ describe('Test sequelize-temporalize', function () {
                         transaction: transaction
                     };
                     return sequelize.models.User.create({ name: 'test' }, options)
-                        .then(user => user.destroy(options))
                         .then(assertCount(sequelize.models.UserHistory, 1))
+                        .then(user => user.destroy(options))
+                        .then(assertCount(sequelize.models.UserHistory, 2))
                         .then(() => transaction.rollback());
                 })
-                    .then(assertCount(sequelize.models.UserHistory, 1));
+                    .then(assertCount(sequelize.models.UserHistory, 0));
             });
         });
         describe('Association Tests', function () {
@@ -813,8 +814,8 @@ describe('Test sequelize-temporalize', function () {
             it('revert on failed transactions', function () {
                 return sequelize
                     .transaction()
-                    .then(t => {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     return sequelize.models.User.create({ name: 'not foo' }, opts)
                         .then(assertCount(sequelize.models.UserHistory, 0, opts))
                         .then(user => {
@@ -822,7 +823,7 @@ describe('Test sequelize-temporalize', function () {
                         user.save(opts);
                     })
                         .then(assertCount(sequelize.models.UserHistory, 1, opts))
-                        .then(() => t.rollback());
+                        .then(() => transaction.rollback());
                 })
                     .then(assertCount(sequelize.models.UserHistory, 0));
             });
@@ -841,16 +842,16 @@ describe('Test sequelize-temporalize', function () {
             it('should revert under transactions', function () {
                 return sequelize
                     .transaction()
-                    .then(function (t) {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], opts)
                         .then(assertCount(sequelize.models.UserHistory, 0, opts))
                         .then(() => sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
-                        transaction: t
+                        transaction
                     }))
                         .then(assertCount(sequelize.models.UserHistory, 2, opts))
-                        .then(() => t.rollback());
+                        .then(() => transaction.rollback());
                 })
                     .then(assertCount(sequelize.models.UserHistory, 0));
             });
@@ -872,17 +873,17 @@ describe('Test sequelize-temporalize', function () {
             it('should revert under transactions', function () {
                 return sequelize
                     .transaction()
-                    .then(t => {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], opts)
                         .then(assertCount(sequelize.models.UserHistory, 0, opts))
                         .then(() => sequelize.models.User.destroy({
                         where: {},
                         truncate: true,
-                        transaction: t
+                        transaction
                     }))
                         .then(assertCount(sequelize.models.UserHistory, 2, opts))
-                        .then(() => t.rollback());
+                        .then(() => transaction.rollback());
                 })
                     .then(assertCount(sequelize.models.UserHistory, 0));
             });
@@ -905,16 +906,16 @@ describe('Test sequelize-temporalize', function () {
             it('should fail to truncate', function () {
                 return dataCreate()
                     .then(() => sequelize.transaction())
-                    .then(t => {
-                    var opts = { transaction: t };
+                    .then(transaction => {
+                    var opts = { transaction };
                     assertCount(sequelize.models.UserHistory, 6, opts);
                     return sequelize.models.User.destroy({
                         where: {},
                         truncate: true,
-                        transaction: t
+                        transaction
                     })
                         .then(assertCount(sequelize.models.UserHistory, 3, opts))
-                        .then(() => t.rollback())
+                        .then(() => transaction.rollback())
                         .catch(err => assert.exists(err));
                 })
                     .then(assertCount(sequelize.models.UserHistory, 6));
@@ -1047,7 +1048,7 @@ describe('Test sequelize-temporalize', function () {
                     .transaction()
                     .then(transaction => {
                     var options = {
-                        transaction: transaction
+                        transaction
                     };
                     return sequelize.models.User.create({ name: 'test' }, options)
                         .then(user => user.destroy(options))
