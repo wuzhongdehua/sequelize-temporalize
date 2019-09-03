@@ -39,6 +39,7 @@ export function Temporalize({
   }
 
   const Sequelize = sequelize.Sequelize;
+  const Op = Sequelize.Op;
 
   const historyName = model.name + temporalizeOptions.modelSuffix;
 
@@ -262,13 +263,33 @@ export function Temporalize({
     return createHistoryEntry(instance, options, {});
   };
 
+  const beforeBulkUpdateHook = async options => {
+    if (!options.individualHooks) {
+      const instances = await model.findAll({
+        attributes: model.primaryKeyAttributes,
+        where: options.where,
+        transaction: options.transaction,
+        paranoid: options.paranoid
+      });
+      options._sequelizeTemporalizeIdStore = instances.map(
+        i => i[model.primaryKeyAttributes[0]]
+      );
+    }
+  };
+
   const afterBulkUpdateHook = async options => {
     if (!options.individualHooks) {
-      throw new Error(
-        'Bulk updates with history tracking is not currently supported, unless options.individualHooks=true. Please use individualHooks=true in all update operations.'
-      );
-      // Functionality using true bulkUpdates will not be possible until this
-      // issue is resolved https://github.com/sequelize/sequelize/issues/10202
+      const primaryKeyValues = options._sequelizeTemporalizeIdStore;
+      const instances = await model.findAll({
+        where: {
+          [model.primaryKeyAttributes[0]]: { [Op.in]: primaryKeyValues }
+        },
+        transaction: options.transaction,
+        paranoid: options.paranoid
+      });
+      return createHistoryEntryBulk(instances, options, {
+        destroyOperation: true
+      });
     }
   };
 
@@ -313,6 +334,7 @@ export function Temporalize({
   model.addHook('afterCreate', afterCreateHook);
   model.addHook('afterBulkCreate', afterBulkCreateHook);
   model.addHook('afterUpdate', afterUpdateHook);
+  model.addHook('beforeBulkUpdate', beforeBulkUpdateHook);
   model.addHook('afterBulkUpdate', afterBulkUpdateHook);
   model.addHook('afterDestroy', afterDestroyHook);
   model.addHook('afterBulkDestroy', afterBulkDestroyHook);

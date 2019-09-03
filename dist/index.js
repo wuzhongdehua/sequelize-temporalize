@@ -30,6 +30,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         throw new Error('If temporalizeOptions.logTransactionId===true, temporalizeOptions.allowTransactions must also be true');
     }
     const Sequelize = sequelize.Sequelize;
+    const Op = Sequelize.Op;
     const historyName = model.name + temporalizeOptions.modelSuffix;
     const transactionIdAttr = temporalizeOptions.logTransactionId
         ? {
@@ -210,11 +211,30 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, {});
     });
+    const beforeBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        if (!options.individualHooks) {
+            const instances = yield model.findAll({
+                attributes: model.primaryKeyAttributes,
+                where: options.where,
+                transaction: options.transaction,
+                paranoid: options.paranoid
+            });
+            options._sequelizeTemporalizeIdStore = instances.map(i => i[model.primaryKeyAttributes[0]]);
+        }
+    });
     const afterBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
         if (!options.individualHooks) {
-            throw new Error('Bulk updates with history tracking is not currently supported, unless options.individualHooks=true. Please use individualHooks=true in all update operations.');
-            // Functionality using true bulkUpdates will not be possible until this
-            // issue is resolved https://github.com/sequelize/sequelize/issues/10202
+            const primaryKeyValues = options._sequelizeTemporalizeIdStore;
+            const instances = yield model.findAll({
+                where: {
+                    [model.primaryKeyAttributes[0]]: { [Op.in]: primaryKeyValues }
+                },
+                transaction: options.transaction,
+                paranoid: options.paranoid
+            });
+            return createHistoryEntryBulk(instances, options, {
+                destroyOperation: true
+            });
         }
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
@@ -222,16 +242,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     });
     const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
         if (!options.individualHooks) {
-            yield model
-                .findAll({
+            const instances = yield model.findAll({
                 where: options.where,
                 transaction: options.transaction,
                 paranoid: false
-            })
-                .then(function (instances) {
-                return createHistoryEntryBulk(instances, options, {
-                    destroyOperation: true
-                });
+            });
+            return createHistoryEntryBulk(instances, options, {
+                destroyOperation: true
             });
         }
     });
@@ -257,6 +274,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     model.addHook('afterCreate', afterCreateHook);
     model.addHook('afterBulkCreate', afterBulkCreateHook);
     model.addHook('afterUpdate', afterUpdateHook);
+    model.addHook('beforeBulkUpdate', beforeBulkUpdateHook);
     model.addHook('afterBulkUpdate', afterBulkUpdateHook);
     model.addHook('afterDestroy', afterDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
