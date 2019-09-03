@@ -278,17 +278,14 @@ export function Temporalize({
 
   const afterBulkDestroyHook = async options => {
     if (!options.individualHooks) {
-      await model
-        .findAll({
-          where: options.where,
-          transaction: options.transaction,
-          paranoid: false
-        })
-        .then(function(instances) {
-          return createHistoryEntryBulk(instances, options, {
-            destroyOperation: true
-          });
-        });
+      const instances = await model.findAll({
+        where: options.where,
+        transaction: options.transaction,
+        paranoid: false
+      });
+      return createHistoryEntryBulk(instances, options, {
+        destroyOperation: true
+      });
     }
   };
 
