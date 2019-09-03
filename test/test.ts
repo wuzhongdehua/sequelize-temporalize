@@ -370,7 +370,7 @@ describe('Test sequelize-temporalize', function() {
     return function(obj) {
       return modelHistory.count(options).then(count => {
         console.log('Count: ' + count);
-        assert.equal(n, count, 'history entries ' + modelHistory.name);
+        assert.equal(count, n, 'history entries ' + modelHistory.name);
         return obj;
       });
     };
