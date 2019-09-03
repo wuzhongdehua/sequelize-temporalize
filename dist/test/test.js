@@ -227,11 +227,17 @@ describe('Test sequelize-temporalize', function () {
         const creationTag1 = Promise.all([tag, creation]).then(models => {
             const t = models[0];
             const c = models[1];
+            console.log('\n\n\nadd tag');
+            console.log(t.dataValues);
+            console.log(c.dataValues);
             return c.addTag(t);
         });
         const creationTag1_rem = Promise.all([tag, creation, creationTag1]).then(models => {
             const t = models[0];
             const c = models[1];
+            console.log('\n\n\nremove tag');
+            console.log(t.dataValues);
+            console.log(c.dataValues);
             return c.removeTag(t);
         });
         const creationTag1_rea = Promise.all([

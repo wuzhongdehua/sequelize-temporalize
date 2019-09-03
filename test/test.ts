@@ -266,6 +266,9 @@ describe('Test sequelize-temporalize', function() {
       const t = models[0];
       const c = models[1];
 
+      console.log('\n\n\nadd tag');
+      console.log(t.dataValues);
+      console.log(c.dataValues);
       return c.addTag(t);
     });
 
@@ -273,7 +276,9 @@ describe('Test sequelize-temporalize', function() {
       models => {
         const t = models[0];
         const c = models[1];
-
+        console.log('\n\n\nremove tag');
+        console.log(t.dataValues);
+        console.log(c.dataValues);
         return c.removeTag(t);
       }
     );
@@ -619,7 +624,10 @@ describe('Test sequelize-temporalize', function() {
             user,
             userHistories,
             userHistory
-          ]);
+          ]).catch(err => {
+            console.log(err);
+            throw err;
+          });
         });
       });
 

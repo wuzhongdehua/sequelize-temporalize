@@ -189,6 +189,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     }
     const afterCreateHook = function (obj, options) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log('create: ', model);
             return model
                 .findOne({
                 where: { id: obj.id },
@@ -202,12 +203,14 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     };
     const afterBulkCreateHook = function (instances, options) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log(model);
             if (!options.individualHooks) {
                 return createHistoryEntryBulk(instances, options, {});
             }
         });
     };
     const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        console.log('update: ', model);
         return createHistoryEntry(instance, options, {});
     });
     const beforeBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
@@ -237,15 +240,35 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         }
     });
     const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        console.log('destroy: ', model);
         return createHistoryEntry(instance, options, { destroyOperation: true });
     });
     const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        console.log('bulkDestroy: ', model);
+        console.log('About to test individual hooks');
         if (!options.individualHooks) {
+            console.log('got in');
+            console.log(options.where);
+            console.log('Getting creation 1');
+            if (options.where.creation === 1) {
+                // TODO: REMOVE!!!!!!!!
+                const allinst = yield model.findAll({
+                    where: { creation: 1 },
+                    transaction: options.transaction,
+                    paranoid: false
+                });
+                console.log('found instances for just creation = 1');
+                console.log(allinst.length);
+                console.log(allinst[0].dataValues);
+                console.log(allinst[1].dataValues);
+            }
             const instances = yield model.findAll({
                 where: options.where,
                 transaction: options.transaction,
                 paranoid: false
             });
+            console.log('instances');
+            console.log(instances);
             return createHistoryEntryBulk(instances, options, {
                 destroyOperation: true
             });
