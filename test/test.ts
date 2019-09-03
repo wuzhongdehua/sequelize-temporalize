@@ -587,16 +587,16 @@ describe('Test sequelize-temporalize', function() {
 
           //Check history data
           const userHistories = init.then(
-            assertCount(sequelize.models.UserHistory, 6)
+            assertCount(sequelize.models.UserHistory, 8)
           );
           const creationHistories = init.then(
-            assertCount(sequelize.models.CreationHistory, 6)
+            assertCount(sequelize.models.CreationHistory, 8)
           );
           const tagHistories = init.then(
-            assertCount(sequelize.models.TagHistory, 9)
+            assertCount(sequelize.models.TagHistory, 12)
           );
           const eventHistories = init.then(
-            assertCount(sequelize.models.EventHistory, 6)
+            assertCount(sequelize.models.EventHistory, 8)
           );
           const creationTagHistories = init.then(
             assertCount(sequelize.models.CreationTagHistory, 1)
