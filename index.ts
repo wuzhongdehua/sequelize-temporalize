@@ -238,8 +238,19 @@ export function Temporalize({
     }
   }
 
+  async function storeBulkPrimaryKeys(options) {
+    const instances = await model.findAll({
+      attributes: model.primaryKeyAttributes,
+      where: options.where,
+      transaction: options.transaction,
+      paranoid: options.paranoid
+    });
+    options._sequelizeTemporalizeIdStore = instances.map(
+      i => i[model.primaryKeyAttributes[0]]
+    );
+  }
+
   const afterCreateHook = async function(obj, options) {
-    console.log('create: ', model);
     return model
       .findOne({
         where: { id: obj.id },
@@ -252,28 +263,18 @@ export function Temporalize({
   };
 
   const afterBulkCreateHook = async function(instances, options) {
-    console.log(model);
     if (!options.individualHooks) {
       return createHistoryEntryBulk(instances, options, {});
     }
   };
 
   const afterUpdateHook = async (instance, options) => {
-    console.log('update: ', model);
     return createHistoryEntry(instance, options, {});
   };
 
   const beforeBulkUpdateHook = async options => {
     if (!options.individualHooks) {
-      const instances = await model.findAll({
-        attributes: model.primaryKeyAttributes,
-        where: options.where,
-        transaction: options.transaction,
-        paranoid: options.paranoid
-      });
-      options._sequelizeTemporalizeIdStore = instances.map(
-        i => i[model.primaryKeyAttributes[0]]
-      );
+      await storeBulkPrimaryKeys(options);
     }
   };
 
@@ -294,38 +295,33 @@ export function Temporalize({
   };
 
   const afterDestroyHook = async (instance, options) => {
-    console.log('destroy: ', model);
     return createHistoryEntry(instance, options, { destroyOperation: true });
   };
 
-  const afterBulkDestroyHook = async options => {
-    console.log('bulkDestroy: ', model);
-    console.log('About to test individual hooks');
+  const beforeBulkDestroyHook = async options => {
     if (!options.individualHooks) {
-      console.log('got in');
-      console.log(options.where);
-
-      console.log('Getting creation 1');
-      if (options.where.creation === 1) {
-        // TODO: REMOVE!!!!!!!!
-        const allinst = await model.findAll({
-          where: { creation: 1 },
+      if (options.paranoid === true) {
+        await storeBulkPrimaryKeys(options);
+      } else {
+        const instances = await model.findAll({
+          where: options.where,
           transaction: options.transaction,
           paranoid: false
         });
-        console.log('found instances for just creation = 1');
-        console.log(allinst.length);
-        console.log(allinst[0].dataValues);
-        console.log(allinst[1].dataValues);
+        return createHistoryEntryBulk(instances, options, {
+          destroyOperation: true
+        }); // Set date is implied by options.paranoid === false
       }
+    }
+  };
 
+  const afterBulkDestroyHook = async options => {
+    if (!options.individualHooks) {
       const instances = await model.findAll({
         where: options.where,
         transaction: options.transaction,
         paranoid: false
       });
-      console.log('instances');
-      console.log(instances);
       return createHistoryEntryBulk(instances, options, {
         destroyOperation: true
       });
@@ -334,6 +330,13 @@ export function Temporalize({
 
   const afterRestoreHook = async (instance, options) => {
     return createHistoryEntry(instance, options, { restoreOperation: true });
+  };
+
+  const beforeBulkRestoreHook = async options => {
+    throw new Error('beforeBulkRestoreHook not working');
+    if (!options.individualHooks) {
+      await storeBulkPrimaryKeys(options);
+    }
   };
 
   const afterBulkRestoreHook = async options => {
@@ -359,8 +362,10 @@ export function Temporalize({
   model.addHook('beforeBulkUpdate', beforeBulkUpdateHook);
   model.addHook('afterBulkUpdate', afterBulkUpdateHook);
   model.addHook('afterDestroy', afterDestroyHook);
+  model.addHook('beforeBulkDestroy', beforeBulkDestroyHook);
   model.addHook('afterBulkDestroy', afterBulkDestroyHook);
   model.addHook('afterRestore', afterRestoreHook);
+  model.addHook('beforeBulkRestore', beforeBulkRestoreHook);
   model.addHook('afterBulkRestore', afterBulkRestoreHook);
 
   const readOnlyHook = function() {
