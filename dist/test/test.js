@@ -302,9 +302,6 @@ describe('Test sequelize-temporalize', function () {
             addAssociations: true
         });
     }
-    function freshDBWithFullModeAndParanoid() {
-        return newDB(true, { full: true });
-    }
     function freshDBWithSuffixEndingWithT() {
         return newDB(false, {
             modelSuffix: '_Hist'
@@ -1001,69 +998,6 @@ describe('Test sequelize-temporalize', function () {
                     .sync()
                     .then(() => Fruit.create({ name: 'apple' }))
                     .then(f => assert.equal(triggered, 1, 'hook trigger count'));
-            });
-        });
-        describe('full mode', function () {
-            beforeEach(freshDBWithFullModeAndParanoid);
-            it('onCreate: should store the new version in history db', function () {
-                return sequelize.models.User.create({ name: 'test' })
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(histories => {
-                    assert.equal(1, histories.length);
-                    assert.equal('test', histories[0].name);
-                });
-            });
-            it('onUpdate: should store the new version to the historyDB', function () {
-                return sequelize.models.User.create({ name: 'test' })
-                    .then(user => user.update({
-                    name: 'renamed'
-                }))
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(histories => {
-                    assert.equal(histories.length, 2, 'two entries in DB');
-                    assert.equal(histories[0].name, 'test', 'first version saved');
-                    assert.equal(histories[1].name, 'renamed', 'second version saved');
-                });
-            });
-            it('onDelete: should store the previous version to the historyDB', function () {
-                return sequelize.models.User.create({ name: 'test' })
-                    .then(user => user.update({
-                    name: 'renamed'
-                }))
-                    .then(user => user.destroy())
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(histories => {
-                    assert.equal(histories.length, 3, 'three entries in DB');
-                    assert.equal(histories[0].name, 'test', 'first version saved');
-                    assert.equal(histories[1].name, 'renamed', 'second version saved');
-                    assert.notEqual(histories[2].deletedAt, null, 'deleted version saved');
-                });
-            });
-            it('onRestore: should store the new version to the historyDB', function () {
-                return sequelize.models.User.create({ name: 'test' })
-                    .then(user => user.destroy())
-                    .then(user => user.restore())
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(histories => {
-                    assert.equal(histories.length, 3, 'three entries in DB');
-                    assert.equal(histories[0].name, 'test', 'first version saved');
-                    assert.notEqual(histories[1].deletedAt, null, 'deleted version saved');
-                    assert.equal(histories[2].deletedAt, null, 'restored version saved');
-                });
-            });
-            it('should revert on failed transactions, even when using after hooks', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = {
-                        transaction
-                    };
-                    return sequelize.models.User.create({ name: 'test' }, options)
-                        .then(user => user.destroy(options))
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
             });
         });
     }
