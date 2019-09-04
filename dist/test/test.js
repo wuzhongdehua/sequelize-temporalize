@@ -474,7 +474,7 @@ describe('Test sequelize-temporalize', function () {
                     const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 8));
                     const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 12));
                     const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 8));
-                    const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 1));
+                    const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 8));
                     return Promise.all([
                         creation,
                         creationHistories,
