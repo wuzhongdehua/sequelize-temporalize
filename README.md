@@ -12,7 +12,7 @@ Temporalize tables maintain **historical versions** of data. Modifying operation
 - undo functionalities
 - track interactions (customer support)
 
-Under the hood a history table with the same structure, but without constraints is created (unless option **addAssociation** is set to **true**).
+Under the hood a history table with the same structure, but without constraints is created.
 
 The normal singular/plural naming scheme in Sequelize is used:
 
@@ -146,61 +146,6 @@ modelSuffix: 'Pass' --> History Model Name: UserPass --> History Table Name: Use
 All indexes that are preserved during the creation of the history table will
 have a '\_history' suffix added to make it distinct to the original table's
 index.
-
-### temporalizeOptions.addAssociations = true
-
-By default sequelize-temporalize will create the history table without
-associations. However, setting this flag to true, you can keep association
-between the history table and the table with the latest value (origin).
-
-NOTE: THIS DOES NOT WORK IF YOU ARE USING A SEPARATE DB FOR THE HISTORICAL
-TABLES. IN THAT CASE, KEEP THE VALUE TO FALSE OR YOU WILL GET AN ERROR.
-
-example for table User:
-model: 'User'
-history model: 'UserHistories'
---> This would add function User.getUserHistories() to return all history entries for that user entry.
---> This would add function UserHistories.getUser() to get the original user from an history.
-
-If a model has associations, those would be mirrored to the history table.
-Origin model can only get its own histories.
-Even if a history table is associated to another origin table thought a foreign
-key field, the history table is not accessible from that origin table
-
-Basically, what you can access in the origin table can be accessed from the
-history table.
-
-example:
-model: User
-history model: UserHistories
-
-model: Creation
-history model: CreationHistories
-
-User <-> Creation: 1 to many
-
-User.getCreations() exists (1 to many)
-Creation.getUser() exists (1 to 1)
-
-User <-> UserHistories: 1 to many
-
-User.getUserHistories() exists (1 to many)
-UserHistories.getUser() exists (1 to 1)
-
-Creation <-> CreationHistories: 1 to many
-
-Creation.getCreationHistories() exists (1 to many)
-CreationHistories.getCreation() exists (1 to 1)
-
-CreationHistories -> User: many to 1
-
-CreationHistories.getUser() exists (1 to 1) (same as Creation.getUser())
-User.GetCreationHistories DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
-
-UserHistories -> Creation: many to many
-
-UserHistories.getCreations() exists (1 to many) (same as User.getCreations())
-CreationHistories.getUser() DOES NOT EXIST. THE ORIGIN TABLE IS NOT MODIFIED.
 
 ### temporalizeOptions.allowTransactions = true
 
