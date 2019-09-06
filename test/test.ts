@@ -636,7 +636,7 @@ describe('Test sequelize-temporalize', function() {
           const user = init.then(() => sequelize.models.User.findOne());
 
           //User associations check
-          const userHistory = user.then(u => {
+          const userHistory = user.then(async u => {
             assert.exists(
               u.getUserHistories,
               'User: getUserHistories does not exist'
@@ -661,8 +661,8 @@ describe('Test sequelize-temporalize', function() {
             .then(uh => {
               assert.equal(
                 uh.length,
-                3,
-                'User: should have found 3 UserHistories'
+                4,
+                'User: should have found 4 UserHistories for one user'
               );
               const first = uh[0];
               assert.exists(
@@ -675,7 +675,7 @@ describe('Test sequelize-temporalize', function() {
               );
               return first.getCreatorCreations();
             })
-            .then(uhc => {
+            .then(async uhc => {
               assert.equal(
                 uhc.length,
                 2,
@@ -744,8 +744,8 @@ describe('Test sequelize-temporalize', function() {
             .then(ch => {
               assert.equal(
                 ch.length,
-                3,
-                'Creation: should have found 3 CreationHistories'
+                4,
+                'Creation: should have found 4 CreationHistories'
               );
               const first = ch[0];
               assert.exists(
@@ -921,19 +921,19 @@ describe('Test sequelize-temporalize', function() {
 
           //Check history data
           const userHistories = init.then(
-            assertCount(sequelize.models.UserHistory, 6)
+            assertCount(sequelize.models.UserHistory, 8)
           );
           const creationHistories = init.then(
-            assertCount(sequelize.models.CreationHistory, 6)
+            assertCount(sequelize.models.CreationHistory, 8)
           );
           const tagHistories = init.then(
-            assertCount(sequelize.models.TagHistory, 9)
+            assertCount(sequelize.models.TagHistory, 12)
           );
           const eventHistories = init.then(
-            assertCount(sequelize.models.EventHistory, 6)
+            assertCount(sequelize.models.EventHistory, 8)
           );
           const creationTagHistories = init.then(
-            assertCount(sequelize.models.CreationTagHistory, 1)
+            assertCount(sequelize.models.CreationTagHistory, 8)
           );
 
           return Promise.all([
