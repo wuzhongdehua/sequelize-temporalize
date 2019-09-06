@@ -218,7 +218,7 @@ in a single transaction across tables.
 
 ### temporalizeOptions.logEventId = true
 
-Logging event IDs allow you to keep track of operations that occur in a single
+Logging eventIds allows you to keep track of operations that occur in a single
 event, and if you simultaneously keep a history of requests in anther table, who
 performed them.
 For example, we may be updating multiple tables in a single request. We want a
@@ -230,26 +230,38 @@ information you think is important) is stored in a request table.
 
 ```js
 import { v4 as uuidv4 } from 'uuid';
-import { addEventIdToTransaction } from 'sequelize-temporalize';
 import { RequestLog } from '../models/request-log'; // the RequestLog table
 import { Post } from '../models/post'; // the Posts table
 
-await sequelize.transaction(async transaction => {
+export function doPostCreate(req, res) {
   const userId = req.userId;
   const eventId = uuidv4(); // for example, can use other uuid functions to generate unique ids for the request event
   // Log the request
-  await RequestLog.create({
-    userId,
-    date: new Date(),
-    eventId,
-    transactionId: getTransactionId(transaction)
-  });
+  await RequestLog.create(
+    {
+      userId,
+      date: new Date()
+    },
+    { eventId } // use `{ eventId } as any` here if using typescript, as eventId is not defined on sequelize options types
+  );
 
-  // Do other things with the same transaction
-  Post.create({ title: req.body.title, text: req.body.text });
-  // The transactionId and eventId will be logged in the associated history table for Post AND in RequestLog
+  // Do other things with the same eventId
+  await Post.create({
+    title: req.body.title,
+    text: req.body.text
+  },
+  {eventId});
+  // The eventId will be logged in the associated history table for Post AND in RequestLog
 });
 ```
+
+### temporalizeOptions.eventIdColumnName
+
+Because it is quite likely that there will be a conflict between the column name
+`eventId` in the history table, and a column in the min table, an option is
+provided to rename the `eventId` column. Note that the `eventId` parameter
+attached to the options object in `Model.create(obj, options)` etc remains
+unchanged.
 
 ### History table
 
