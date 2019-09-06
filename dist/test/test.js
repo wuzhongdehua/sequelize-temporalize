@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -503,10 +511,10 @@ describe('Test sequelize-temporalize', function () {
                     //Get User
                     const user = init.then(() => sequelize.models.User.findOne());
                     //User associations check
-                    const userHistory = user.then(u => {
+                    const userHistory = user.then((u) => __awaiter(this, void 0, void 0, function* () {
                         assert.exists(u.getUserHistories, 'User: getUserHistories does not exist');
                         return u.getUserHistories();
-                    });
+                    }));
                     const creation = user.then(u => {
                         assert.exists(u.getCreatorCreations, 'User: getCreatorCreations does not exist');
                         assert.exists(u.getUpdatorCreations, 'User: getUpdatorCreations does not exist');
@@ -515,16 +523,16 @@ describe('Test sequelize-temporalize', function () {
                     //UserHistories associations check
                     const uhCreation = userHistory
                         .then(uh => {
-                        assert.equal(uh.length, 3, 'User: should have found 3 UserHistories');
+                        assert.equal(uh.length, 4, 'User: should have found 4 UserHistories for one user');
                         const first = uh[0];
                         assert.exists(first.getCreatorCreations, 'UserHistory: getCreatorCreations does not exist');
                         assert.exists(first.getUpdatorCreations, 'UserHistory: getUpdatorCreations does not exist');
                         return first.getCreatorCreations();
                     })
-                        .then(uhc => {
+                        .then((uhc) => __awaiter(this, void 0, void 0, function* () {
                         assert.equal(uhc.length, 2, 'UserHistory: should have found 2 creations');
                         return Promise.resolve('done');
-                    });
+                    }));
                     const uhUser = userHistory
                         .then(uh => {
                         const first = uh[0];
@@ -566,7 +574,7 @@ describe('Test sequelize-temporalize', function () {
                     //CreationHistories association check
                     const chCreation = creationHistory
                         .then(ch => {
-                        assert.equal(ch.length, 3, 'Creation: should have found 3 CreationHistories');
+                        assert.equal(ch.length, 4, 'Creation: should have found 4 CreationHistories');
                         const first = ch[0];
                         assert.exists(first.getCreation, 'CreationHistory: getCreation does not exist');
                         return first.getCreation();
@@ -683,11 +691,11 @@ describe('Test sequelize-temporalize', function () {
                         return Promise.resolve('done');
                     });
                     //Check history data
-                    const userHistories = init.then(assertCount(sequelize.models.UserHistory, 6));
-                    const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 6));
-                    const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 9));
-                    const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 6));
-                    const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 1));
+                    const userHistories = init.then(assertCount(sequelize.models.UserHistory, 8));
+                    const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 8));
+                    const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 12));
+                    const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 8));
+                    const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 8));
                     return Promise.all([
                         chCreation,
                         chEvent,
