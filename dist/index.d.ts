@@ -5,4 +5,3 @@ export declare function Temporalize({ model, modelHistory, sequelize, temporaliz
     temporalizeOptions: any;
 }): any;
 export declare function getTransactionId(transaction: any): any;
-export declare function addEventIdToTransaction(eventId: string, transaction: any): void;

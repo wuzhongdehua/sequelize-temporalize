@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -10,10 +18,10 @@ const temporalizeDefaultOptions = {
     blocking: true,
     modelSuffix: 'History',
     indexSuffix: '_history',
-    addAssociations: false,
     allowTransactions: true,
     logTransactionId: true,
-    logEventId: true
+    logEventId: true,
+    eventIdColumnName: 'eventId'
 };
 function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     temporalizeOptions = lodash_1.default.extend({}, temporalizeDefaultOptions, temporalizeOptions);
@@ -22,6 +30,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         throw new Error('If temporalizeOptions.logTransactionId===true, temporalizeOptions.allowTransactions must also be true');
     }
     const Sequelize = sequelize.Sequelize;
+    const Op = Sequelize.Op;
     const historyName = model.name + temporalizeOptions.modelSuffix;
     const transactionIdAttr = temporalizeOptions.logTransactionId
         ? {
@@ -49,7 +58,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             defaultValue: Sequelize.NOW
         },
         transactionId: transactionIdAttr,
-        eventId: eventIdAttr
+        [temporalizeOptions.eventIdColumnName]: eventIdAttr
     };
     const excludedAttributes = [
         'Model',
@@ -124,33 +133,30 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         modelHistoryOutput = sequelize.define(historyName, historyAttributes, historyOptions);
     }
     modelHistoryOutput.originModel = model;
-    modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
-    // we already get the updatedAt timestamp from our models
-    const insertHook = function (obj, options) {
-        return model
-            .findOne({
-            where: { id: obj.id },
-            transaction: options.transaction,
-            paranoid: false
-        })
-            .then(function (hit) {
-            const dataValues = lodash_1.default.cloneDeep(hit.dataValues);
-            dataValues.archivedAt = hit.dataValues.updatedAt;
-            if (options.restoreOperation) {
-                dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
-            }
-            if (options.destroyOperation) {
-                // If paranoid is true, use the deleted value
-                dataValues.archivedAt = hit.dataValues.deletedAt || Date.now();
-            }
-            if (temporalizeOptions.logTransactionId && options.transaction) {
-                dataValues.transactionId = getTransactionId(options.transaction);
-            }
-            if (temporalizeOptions.logEventId &&
-                options.transaction &&
-                options.transaction.eventId) {
-                dataValues.eventId = options.transaction.eventId;
-            }
+    function transformToHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
+        const dataValues = lodash_1.default.cloneDeep(instance.dataValues);
+        dataValues.archivedAt = instance.dataValues.updatedAt;
+        if (restoreOperation) {
+            dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
+        }
+        if (destroyOperation) {
+            // If paranoid is true, use the deleted value
+            dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
+        }
+        if (temporalizeOptions.logTransactionId && options.transaction) {
+            dataValues.transactionId = getTransactionId(options.transaction);
+        }
+        if (temporalizeOptions.logEventId && options.eventId) {
+            dataValues[temporalizeOptions.eventIdColumnName] = options.eventId;
+        }
+        return dataValues;
+    }
+    function createHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dataValues = transformToHistoryEntry(instance, options, {
+                destroyOperation,
+                restoreOperation
+            });
             const historyRecord = modelHistoryOutput.create(dataValues, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
@@ -160,109 +166,153 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                 return historyRecord;
             }
         });
+    }
+    function createHistoryEntryBulk(instances, options, { destroyOperation, restoreOperation }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const dataValuesArr = instances.map(instance => {
+                return transformToHistoryEntry(instance, options, {
+                    destroyOperation,
+                    restoreOperation
+                });
+            });
+            const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
+                transaction: temporalizeOptions.allowTransactions
+                    ? options.transaction
+                    : null
+            });
+            if (temporalizeOptions.blocking) {
+                return historyRecord;
+            }
+        });
+    }
+    function storeBulkPrimaryKeys(options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const instances = yield model.findAll({
+                attributes: model.primaryKeyAttributes,
+                where: options.where,
+                transaction: options.transaction,
+                paranoid: options.paranoid
+            });
+            options._sequelizeTemporalizeIdStore = instances.map(i => i[model.primaryKeyAttributes[0]]);
+        });
+    }
+    const afterCreateHook = function (obj, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return model
+                .findOne({
+                where: { id: obj.id },
+                transaction: options.transaction,
+                paranoid: false
+            })
+                .then(function (instance) {
+                return createHistoryEntry(instance, options, {});
+            });
+        });
     };
-    const insertBulkHook = function (options) {
+    const afterBulkCreateHook = function (instances, options) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!options.individualHooks) {
+                return createHistoryEntryBulk(instances, options, {});
+            }
+        });
+    };
+    const afterUpdateHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, {});
+    });
+    const beforeBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
         if (!options.individualHooks) {
-            const queryAll = model
+            yield storeBulkPrimaryKeys(options);
+        }
+    });
+    const afterBulkUpdateHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        if (!options.individualHooks) {
+            const primaryKeyValues = options._sequelizeTemporalizeIdStore;
+            const instances = yield model.findAll({
+                where: {
+                    [model.primaryKeyAttributes[0]]: { [Op.in]: primaryKeyValues }
+                },
+                transaction: options.transaction,
+                paranoid: options.paranoid
+            });
+            return createHistoryEntryBulk(instances, options, {
+                destroyOperation: true
+            });
+        }
+    });
+    const afterDestroyHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, { destroyOperation: true });
+    });
+    const beforeBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        if (!options.individualHooks) {
+            if (options.paranoid === true) {
+                yield storeBulkPrimaryKeys(options);
+            }
+            else {
+                const instances = yield model.findAll({
+                    where: options.where,
+                    transaction: options.transaction,
+                    paranoid: false
+                });
+                return createHistoryEntryBulk(instances, options, {
+                    destroyOperation: true
+                }); // Set date is implied by options.paranoid === false
+            }
+        }
+    });
+    const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        if (!options.individualHooks) {
+            const instances = yield model.findAll({
+                where: options.where,
+                transaction: options.transaction,
+                paranoid: false
+            });
+            return createHistoryEntryBulk(instances, options, {
+                destroyOperation: true
+            });
+        }
+    });
+    const afterRestoreHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
+        return createHistoryEntry(instance, options, { restoreOperation: true });
+    });
+    const beforeBulkRestoreHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        throw new Error('beforeBulkRestoreHook not working');
+        if (!options.individualHooks) {
+            yield storeBulkPrimaryKeys(options);
+        }
+    });
+    const afterBulkRestoreHook = (options) => __awaiter(this, void 0, void 0, function* () {
+        options.restoreOperation = true;
+        if (!options.individualHooks) {
+            yield model
                 .findAll({
                 where: options.where,
                 transaction: options.transaction,
                 paranoid: false
             })
-                .then(function (hits) {
-                if (hits) {
-                    hits = lodash_1.default.map(hits, 'dataValues');
-                    hits.forEach(ele => {
-                        ele.archivedAt = ele.updatedAt;
-                        if (options.restoreOperation) {
-                            ele.archivedAt = Date.now();
-                        }
-                        if (options.destroyOperation) {
-                            // If paranoid is true, use the deleted value
-                            ele.archivedAt = ele.deletedAt || Date.now();
-                        }
-                        if (temporalizeOptions.logTransactionId && options.transaction) {
-                            ele.transactionId = getTransactionId(options.transaction);
-                        }
-                        if (temporalizeOptions.logEventId &&
-                            options.transaction &&
-                            options.transaction.eventId) {
-                            ele.eventId = options.transaction.eventId;
-                        }
-                    });
-                    return modelHistoryOutput.bulkCreate(hits, {
-                        transaction: temporalizeOptions.allowTransactions
-                            ? options.transaction
-                            : null
-                    });
-                }
+                .then(function (instances) {
+                return createHistoryEntryBulk(instances, options, {
+                    restoreOperation: true
+                });
             });
-            if (temporalizeOptions.blocking) {
-                return queryAll;
-            }
         }
-    };
-    const beforeSync = function () {
-        const source = this.originModel;
-        const sourceHist = this;
-        if (source &&
-            !source.name.endsWith(temporalizeOptions.modelSuffix) &&
-            source.associations &&
-            temporalizeOptions.addAssociations == true &&
-            sourceHist) {
-            const pkfield = source.primaryKeyField;
-            //adding associations from history model to origin model's association
-            Object.keys(source.associations).forEach(assokey => {
-                const association = source.associations[assokey];
-                const associationOptions = lodash_1.default.cloneDeep(association.options);
-                const target = association.target;
-                const assocName = association.associationType.charAt(0).toLowerCase() +
-                    association.associationType.substr(1);
-                associationOptions.onDelete = 'NO ACTION';
-                associationOptions.onUpdate = 'NO ACTION';
-                //handle primary keys for belongsToMany
-                if (assocName == 'belongsToMany') {
-                    sourceHist.primaryKeys = lodash_1.default.forEach(source.primaryKeys, x => (x.autoIncrement = false));
-                    sourceHist.primaryKeyField = Object.keys(sourceHist.primaryKeys)[0];
-                }
-                sourceHist[assocName].apply(sourceHist, [target, associationOptions]);
-            });
-            //adding associations between origin model and history
-            source.hasMany(sourceHist, { foreignKey: pkfield });
-            sourceHist.belongsTo(source, { foreignKey: pkfield });
-            sequelize.models[sourceHist.name] = sourceHist;
-        }
-        return Promise.resolve('Temporalize associations established');
-    };
-    const afterDestroyHook = (obj, options) => {
-        options.destroyOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkDestroyHook = options => {
-        options.destroyOperation = true;
-        return insertBulkHook(options);
-    };
-    const afterRestoreHook = (obj, options) => {
-        options.restoreOperation = true;
-        return insertHook(obj, options);
-    };
-    const afterBulkRestoreHook = options => {
-        options.restoreOperation = true;
-        return insertBulkHook(options);
-    };
-    model.addHook('afterCreate', insertHook);
-    model.addHook('afterBulkCreate', insertBulkHook);
-    model.addHook('afterUpdate', insertHook);
-    model.addHook('afterBulkUpdate', insertBulkHook);
+    });
+    model.addHook('afterCreate', afterCreateHook);
+    model.addHook('afterBulkCreate', afterBulkCreateHook);
+    model.addHook('afterUpdate', afterUpdateHook);
+    model.addHook('beforeBulkUpdate', beforeBulkUpdateHook);
+    model.addHook('afterBulkUpdate', afterBulkUpdateHook);
     model.addHook('afterDestroy', afterDestroyHook);
+    model.addHook('beforeBulkDestroy', beforeBulkDestroyHook);
     model.addHook('afterBulkDestroy', afterBulkDestroyHook);
     model.addHook('afterRestore', afterRestoreHook);
+    model.addHook('beforeBulkRestore', beforeBulkRestoreHook);
     model.addHook('afterBulkRestore', afterBulkRestoreHook);
     const readOnlyHook = function () {
         throw new Error("This is a read-only history database. You aren't allowed to modify it.");
     };
     modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
     modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
+    const beforeSync = function () { };
     modelHistoryOutput.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
     return modelHistoryOutput;
 }
@@ -275,7 +325,3 @@ function getTransactionId(transaction) {
     return boundGetId();
 }
 exports.getTransactionId = getTransactionId;
-function addEventIdToTransaction(eventId, transaction) {
-    transaction.eventId = eventId;
-}
-exports.addEventIdToTransaction = addEventIdToTransaction;
