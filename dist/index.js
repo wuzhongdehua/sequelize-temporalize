@@ -18,7 +18,6 @@ const temporalizeDefaultOptions = {
     blocking: true,
     modelSuffix: 'History',
     indexSuffix: '_history',
-    addAssociations: false,
     allowTransactions: true,
     logTransactionId: true,
     logEventId: true,
@@ -134,7 +133,6 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         modelHistoryOutput = sequelize.define(historyName, historyAttributes, historyOptions);
     }
     modelHistoryOutput.originModel = model;
-    modelHistoryOutput.addAssociations = temporalizeOptions.addAssociations; // TODO delete?
     function transformToHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
         const dataValues = lodash_1.default.cloneDeep(instance.dataValues);
         dataValues.archivedAt = instance.dataValues.updatedAt;
@@ -314,38 +312,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     };
     modelHistoryOutput.addHook('beforeUpdate', readOnlyHook);
     modelHistoryOutput.addHook('beforeDestroy', readOnlyHook);
-    const beforeSync = function () {
-        const source = this.originModel;
-        const sourceHist = this;
-        if (source &&
-            !source.name.endsWith(temporalizeOptions.modelSuffix) &&
-            source.associations &&
-            temporalizeOptions.addAssociations == true &&
-            sourceHist) {
-            const pkfield = source.primaryKeyField;
-            //adding associations from history model to origin model's association
-            Object.keys(source.associations).forEach(assokey => {
-                const association = source.associations[assokey];
-                const associationOptions = lodash_1.default.cloneDeep(association.options);
-                const target = association.target;
-                const assocName = association.associationType.charAt(0).toLowerCase() +
-                    association.associationType.substr(1);
-                associationOptions.onDelete = 'NO ACTION';
-                associationOptions.onUpdate = 'NO ACTION';
-                //handle primary keys for belongsToMany
-                if (assocName == 'belongsToMany') {
-                    sourceHist.primaryKeys = lodash_1.default.forEach(source.primaryKeys, x => (x.autoIncrement = false));
-                    sourceHist.primaryKeyField = Object.keys(sourceHist.primaryKeys)[0];
-                }
-                sourceHist[assocName].apply(sourceHist, [target, associationOptions]);
-            });
-            //adding associations between origin model and history
-            source.hasMany(sourceHist, { foreignKey: pkfield });
-            sourceHist.belongsTo(source, { foreignKey: pkfield });
-            sequelize.models[sourceHist.name] = sourceHist;
-        }
-        return Promise.resolve('Temporalize associations established');
-    };
+    const beforeSync = function () { };
     modelHistoryOutput.addHook('beforeSync', 'HistoricalSyncHook', beforeSync);
     return modelHistoryOutput;
 }

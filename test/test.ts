@@ -135,12 +135,12 @@ describe('Test sequelize-temporalize', function() {
     return sequelize.sync({ force: true });
   }
 
-  //Adding 3 tags, 2 creations, 2 events, 2 user
-  //each creation has 3 tags
-  //user has 2 creations
-  //creation has 1 event
-  //tags,creations,user,events are renamed 3 times to generate 3 history data
-  //1 tag is removed and re-added to a creation to create 1 history entry in the CreationTags table
+  // Adding 3 tags, 2 creations, 2 events, 2 user
+  // each creation has 3 tags
+  // user has 2 creations
+  // creation has 1 event
+  // tags,creations,user,events are renamed 3 times to generate 3 history data
+  // 1 tag is removed and re-added to a creation to create 1 history entry in the CreationTags table
   function dataCreate() {
     const tag = sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
       t.name = 'tag01 renamed';
@@ -265,10 +265,6 @@ describe('Test sequelize-temporalize', function() {
     const creationTag1 = Promise.all([tag, creation]).then(models => {
       const t = models[0];
       const c = models[1];
-
-      console.log('\n\n\nadd tag');
-      console.log(t.dataValues);
-      console.log(c.dataValues);
       return c.addTag(t);
     });
 
@@ -276,9 +272,6 @@ describe('Test sequelize-temporalize', function() {
       models => {
         const t = models[0];
         const c = models[1];
-        console.log('\n\n\nremove tag');
-        console.log(t.dataValues);
-        console.log(c.dataValues);
         return c.removeTag(t);
       }
     );
@@ -354,12 +347,6 @@ describe('Test sequelize-temporalize', function() {
     return newDB();
   }
 
-  function freshDBWithAssociations() {
-    return newDB(false, {
-      addAssociations: true
-    });
-  }
-
   function freshDBWithSuffixEndingWithT() {
     return newDB(false, {
       modelSuffix: '_Hist'
@@ -370,7 +357,6 @@ describe('Test sequelize-temporalize', function() {
     // wrapped, chainable promise
     return function(obj) {
       return modelHistory.count(options).then(count => {
-        console.log('Count: ' + count);
         assert.equal(count, n, 'history entries ' + modelHistory.name);
         return obj;
       });
@@ -626,443 +612,50 @@ describe('Test sequelize-temporalize', function() {
           });
         });
       });
-
-      describe('test there are associations are created between origin and history', function() {
-        beforeEach(freshDBWithAssociations);
-        it('Should have relations for origin models and for history models to origin', function() {
-          const init = dataCreate();
-
-          //Get User
-          const user = init.then(() => sequelize.models.User.findOne());
-
-          //User associations check
-          const userHistory = user.then(async u => {
-            assert.exists(
-              u.getUserHistories,
-              'User: getUserHistories does not exist'
-            );
-            return u.getUserHistories();
-          });
-
-          const creation = user.then(u => {
-            assert.exists(
-              u.getCreatorCreations,
-              'User: getCreatorCreations does not exist'
-            );
-            assert.exists(
-              u.getUpdatorCreations,
-              'User: getUpdatorCreations does not exist'
-            );
-            return u.getCreatorCreations();
-          });
-
-          //UserHistories associations check
-          const uhCreation = userHistory
-            .then(uh => {
-              assert.equal(
-                uh.length,
-                4,
-                'User: should have found 4 UserHistories for one user'
-              );
-              const first = uh[0];
-              assert.exists(
-                first.getCreatorCreations,
-                'UserHistory: getCreatorCreations does not exist'
-              );
-              assert.exists(
-                first.getUpdatorCreations,
-                'UserHistory: getUpdatorCreations does not exist'
-              );
-              return first.getCreatorCreations();
-            })
-            .then(async uhc => {
-              assert.equal(
-                uhc.length,
-                2,
-                'UserHistory: should have found 2 creations'
-              );
-              return Promise.resolve('done');
-            });
-
-          const uhUser = userHistory
-            .then(uh => {
-              const first = uh[0];
-              assert.exists(
-                first.getUser,
-                'UserHistory: getUser does not exist'
-              );
-              return first.getUser();
-            })
-            .then(uhu => {
-              assert.exists(uhu, 'UserHistory: did not find a user');
-              return Promise.resolve('done');
-            });
-
-          //Creation associations check
-          const creationHistory = creation.then(c => {
-            assert.equal(c.length, 2, 'User: should have found 2 creations');
-            const first = c[0];
-            assert.exists(
-              first.getCreationHistories,
-              'Creation: getCreationHistories does not exist'
-            );
-            return first.getCreationHistories();
-          });
-
-          const tag = creation.then(c => {
-            const first = c[0];
-            assert.exists(first.getTags, 'Creation: getTags does not exist');
-            return first.getTags();
-          });
-
-          const event = creation.then(c => {
-            const first = c[0];
-            assert.exists(first.getEvent, 'Creation: getEvent does not exist');
-            return first.getEvent();
-          });
-
-          const cUser = creation
-            .then(c => {
-              const first = c[0];
-              assert.exists(
-                first.getCreateUser,
-                'Creation: getCreateUser does not exist'
-              );
-              assert.exists(
-                first.getUpdateUser,
-                'Creation: getUpdateUser does not exist'
-              );
-              return first.getCreateUser();
-            })
-            .then(cu => {
-              assert.exists(cu, 'Creation: did not find a create user');
-              return Promise.resolve('done');
-            });
-
-          //CreationHistories association check
-          const chCreation = creationHistory
-            .then(ch => {
-              assert.equal(
-                ch.length,
-                4,
-                'Creation: should have found 4 CreationHistories'
-              );
-              const first = ch[0];
-              assert.exists(
-                first.getCreation,
-                'CreationHistory: getCreation does not exist'
-              );
-              return first.getCreation();
-            })
-            .then(chc => {
-              assert.exists(chc, 'CreationHistory: did noy find a creation');
-              return Promise.resolve('done');
-            });
-
-          const chTag = creationHistory
-            .then(ch => {
-              const first = ch[0];
-              assert.exists(
-                first.getTags,
-                'CreationHistory: getTags does not exist'
-              );
-              return first.getTags();
-            })
-            .then(uht => {
-              assert.equal(uht.length, 3);
-              return Promise.resolve('done');
-            });
-
-          const chUser = creationHistory
-            .then(ch => {
-              const first = ch[0];
-              assert.exists(
-                first.getCreateUser,
-                'CreationHistory: getCreateUser does not exist'
-              );
-              assert.exists(
-                first.getUpdateUser,
-                'CreationHistory: getUpdateUser does not exist'
-              );
-              return first.getCreateUser();
-            })
-            .then(chu => {
-              assert.exists(chu, 'CreationHistory: did not find a user');
-              return Promise.resolve('done');
-            });
-
-          const chEvent = creationHistory
-            .then(ch => {
-              const first = ch[0];
-              assert.exists(
-                first.getEvent,
-                'CreationHistory: getEvent does not exist'
-              );
-              return first.getEvent();
-            })
-            .then(che => {
-              assert.exists(che, 'CreationHistory: did not find an event');
-              return Promise.resolve('done');
-            });
-
-          //Tag associations check
-          const tagHistory = tag.then(t => {
-            assert.equal(t.length, 3, 'Creation: should have found 3 tags');
-            const first = t[0];
-            assert.exists(
-              first.getTagHistories,
-              'Tag: getTagHistories does not exist'
-            );
-            return first.getTagHistories();
-          });
-
-          const tCreation = tag
-            .then(t => {
-              const first = t[0];
-              assert.exists(
-                first.getCreations,
-                'Tag: getCreations does not exist'
-              );
-              return first.getCreations();
-            })
-            .then(tc => {
-              assert.equal(tc.length, 2, 'Tag: should have found 2 creations');
-              return Promise.resolve('done');
-            });
-
-          //TagHistories associations check
-          const thTag = tagHistory
-            .then(th => {
-              assert.equal(
-                th.length,
-                3,
-                'TagHistory: should have found 3 TagHistories'
-              );
-              const first = th[0];
-              assert.exists(first.getTag, 'TagHistory: getTag does not exist');
-              return first.getTag();
-            })
-            .then(tht => {
-              assert.exists(tht, 'TagHistory: did not find a tag');
-              return Promise.resolve('done');
-            });
-
-          const thCreation = tagHistory
-            .then(th => {
-              const first = th[0];
-              assert.exists(
-                first.getCreations,
-                'TagHistory: getCreations does not exist'
-              );
-              return first.getCreations();
-            })
-            .then(thc => {
-              assert.equal(
-                thc.length,
-                2,
-                'TagHistory: should have found 2 creations'
-              );
-              return Promise.resolve('done');
-            });
-
-          //Event associations check
-          const eventHistory = event.then(e => {
-            assert.exists(e, 'Creation: did not find an event');
-            assert.exists(
-              e.getEventHistories,
-              'Event: getEventHistories does not exist'
-            );
-            return e.getEventHistories();
-          });
-
-          const eCreation = event
-            .then(e => {
-              assert.exists(e.getCreation, 'Event: getCreation does not exist');
-              return e.getCreation();
-            })
-            .then(ec => {
-              assert.exists(ec, 'Event: did not find a creation');
-              return Promise.resolve('done');
-            });
-
-          //EventHistories associations check
-          const ehEvent = eventHistory
-            .then(eh => {
-              assert.equal(
-                eh.length,
-                3,
-                'Event: should have found 3 EventHistories'
-              );
-              const first = eh[0];
-              assert.exists(
-                first.getEvent,
-                'EventHistories: getEvent does not exist'
-              );
-              return first.getEvent();
-            })
-            .then(ehe => {
-              assert.exists(ehe, 'EventHistories: did not find an event');
-              return Promise.resolve('done');
-            });
-
-          const ehCreation = eventHistory
-            .then(eh => {
-              const first = eh[0];
-              assert.exists(
-                first.getCreation,
-                'EventHistories: getCreation does not exist'
-              );
-              return first.getCreation();
-            })
-            .then(ehc => {
-              assert.exists(ehc, 'EventHistories: did not find a creation');
-              return Promise.resolve('done');
-            });
-
-          //Check history data
-          const userHistories = init.then(
-            assertCount(sequelize.models.UserHistory, 8)
-          );
-          const creationHistories = init.then(
-            assertCount(sequelize.models.CreationHistory, 8)
-          );
-          const tagHistories = init.then(
-            assertCount(sequelize.models.TagHistory, 12)
-          );
-          const eventHistories = init.then(
-            assertCount(sequelize.models.EventHistory, 8)
-          );
-          const creationTagHistories = init.then(
-            assertCount(sequelize.models.CreationTagHistory, 8)
-          );
-
-          return Promise.all([
-            chCreation,
-            chEvent,
-            chTag,
-            chUser,
-            creation,
-            creationHistories,
-            creationHistory,
-            creationTagHistories,
-            cUser,
-            eCreation,
-            event,
-            eventHistories,
-            eventHistory,
-            init,
-            tag,
-            tagHistories,
-            tagHistory,
-            tCreation,
-            thCreation,
-            thTag,
-            uhCreation,
-            uhUser,
-            user,
-            userHistories,
-            userHistory,
-            ehEvent,
-            ehCreation
-          ]);
-        });
-      });
-    });
-
-    //these tests are the same as hooks since the results should not change, even with a different model name
-    //Only added is to test for the model name
-    describe('test suffix ending in T', function() {
-      beforeEach(freshDBWithSuffixEndingWithT);
-      it('onCreate: should not store the new version in history db', function() {
-        return sequelize.models.User.create({ name: 'test' }).then(
-          assertCount(sequelize.models.User_Hist, 0)
-        );
-      });
-      it('onUpdate/onDestroy: should save to the historyDB', function() {
-        return sequelize.models.User.create()
-          .then(assertCount(sequelize.models.User_Hist, 0))
-          .then(user => {
-            user.name = 'foo';
-            return user.save();
-          })
-          .then(assertCount(sequelize.models.User_Hist, 1))
-          .then(user => user.destroy())
-          .then(assertCount(sequelize.models.User_Hist, 2));
-      });
-      it('onUpdate: should store the previous version to the historyDB', function() {
-        return sequelize.models.User.create({ name: 'foo' })
-          .then(assertCount(sequelize.models.User_Hist, 0))
-          .then(user => {
-            user.name = 'bar';
-            return user.save();
-          })
-          .then(assertCount(sequelize.models.User_Hist, 1))
-          .then(() => sequelize.models.User_Hist.findAll())
-          .then(users => {
-            assert.equal(users.length, 1, 'only one entry in DB');
-            assert.equal(users[0].name, 'foo', 'previous entry saved');
-          })
-          .then(() => sequelize.models.User.findOne())
-          .then(user => user.destroy())
-          .then(assertCount(sequelize.models.User_Hist, 2));
-      });
-      it('onDelete: should store the previous version to the historyDB', function() {
-        return sequelize.models.User.create({ name: 'foo' })
-          .then(assertCount(sequelize.models.User_Hist, 0))
-          .then(user => user.destroy())
-          .then(assertCount(sequelize.models.User_Hist, 1))
-          .then(() => sequelize.models.User_Hist.findAll())
-          .then(users => {
-            assert.equal(users.length, 1, 'only one entry in DB');
-            assert.equal(users[0].name, 'foo', 'previous entry saved');
-          });
-      });
     });
 
     describe('hooks', function() {
       beforeEach(freshDB);
-      it('onCreate: should not store the new version in history db', function() {
+      it('onCreate: should store the new version in history db', function() {
         return sequelize.models.User.create({ name: 'test' }).then(
-          assertCount(sequelize.models.UserHistory, 0)
+          assertCount(sequelize.models.UserHistory, 1)
         );
       });
       it('onUpdate/onDestroy: should save to the historyDB', function() {
         return sequelize.models.User.create()
-          .then(assertCount(sequelize.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 1))
           .then(user => {
             user.name = 'foo';
             return user.save();
           })
-          .then(assertCount(sequelize.models.UserHistory, 1))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(user => user.destroy())
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 3));
       });
       it('onUpdate: should store the previous version to the historyDB', function() {
         return sequelize.models.User.create({ name: 'foo' })
-          .then(assertCount(sequelize.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 1))
           .then(user => {
             user.name = 'bar';
             return user.save();
           })
-          .then(assertCount(sequelize.models.UserHistory, 1))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() => sequelize.models.UserHistory.findAll())
           .then(users => {
-            assert.equal(users.length, 1, 'only one entry in DB');
-            assert.equal(users[0].name, 'foo', 'previous entry saved');
+            assert.equal(users.length, 2, 'multiple entries');
           })
           .then(user => sequelize.models.User.findOne())
           .then(user => user.destroy())
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 3));
       });
       it('onDelete: should store the previous version to the historyDB', function() {
         return sequelize.models.User.create({ name: 'foo' })
-          .then(assertCount(sequelize.models.UserHistory, 0))
-          .then(user => user.destroy())
           .then(assertCount(sequelize.models.UserHistory, 1))
+          .then(user => user.destroy())
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() => sequelize.models.UserHistory.findAll())
           .then(users => {
-            assert.equal(users.length, 1, 'only one entry in DB');
-            assert.equal(users[0].name, 'foo', 'previous entry saved');
+            assert.equal(users.length, 2, 'two entries');
           });
       });
     });
@@ -1075,12 +668,12 @@ describe('Test sequelize-temporalize', function() {
           .then(transaction => {
             const options = { transaction };
             return sequelize.models.User.create({ name: 'not foo' }, options)
-              .then(assertCount(sequelize.models.UserHistory, 0, options))
+              .then(assertCount(sequelize.models.UserHistory, 1, options))
               .then(user => {
                 user.name = 'foo';
-                user.save(options);
+                return user.save(options);
               })
-              .then(assertCount(sequelize.models.UserHistory, 1, options))
+              .then(assertCount(sequelize.models.UserHistory, 2, options))
               .then(() => transaction.rollback());
           })
           .then(assertCount(sequelize.models.UserHistory, 0));
@@ -1094,11 +687,11 @@ describe('Test sequelize-temporalize', function() {
           { name: 'foo1' },
           { name: 'foo2' }
         ])
-          .then(assertCount(sequelize.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() =>
             sequelize.models.User.update({ name: 'updated-foo' }, { where: {} })
           )
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 4));
       });
       it('should revert under transactions', function() {
         return sequelize
@@ -1109,7 +702,7 @@ describe('Test sequelize-temporalize', function() {
               [{ name: 'foo1' }, { name: 'foo2' }],
               options
             )
-              .then(assertCount(sequelize.models.UserHistory, 0, options))
+              .then(assertCount(sequelize.models.UserHistory, 2, options))
               .then(() =>
                 sequelize.models.User.update(
                   { name: 'updated-foo' },
@@ -1119,7 +712,7 @@ describe('Test sequelize-temporalize', function() {
                   }
                 )
               )
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
+              .then(assertCount(sequelize.models.UserHistory, 4, options))
               .then(() => transaction.rollback());
           })
           .then(assertCount(sequelize.models.UserHistory, 0));
@@ -1133,14 +726,14 @@ describe('Test sequelize-temporalize', function() {
           { name: 'foo1' },
           { name: 'foo2' }
         ])
-          .then(assertCount(sequelize.models.UserHistory, 0))
+          .then(assertCount(sequelize.models.UserHistory, 2))
           .then(() =>
             sequelize.models.User.destroy({
               where: {},
               truncate: true // truncate the entire table
             })
           )
-          .then(assertCount(sequelize.models.UserHistory, 2));
+          .then(assertCount(sequelize.models.UserHistory, 4));
       });
       it('should revert under transactions', function() {
         return sequelize
@@ -1151,7 +744,7 @@ describe('Test sequelize-temporalize', function() {
               [{ name: 'foo1' }, { name: 'foo2' }],
               options
             )
-              .then(assertCount(sequelize.models.UserHistory, 0, options))
+              .then(assertCount(sequelize.models.UserHistory, 2, options))
               .then(() =>
                 sequelize.models.User.destroy({
                   where: {},
@@ -1159,50 +752,10 @@ describe('Test sequelize-temporalize', function() {
                   transaction
                 })
               )
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
+              .then(assertCount(sequelize.models.UserHistory, 4, options))
               .then(() => transaction.rollback());
           })
           .then(assertCount(sequelize.models.UserHistory, 0));
-      });
-    });
-
-    describe('bulk destroy/truncate with associations', function() {
-      beforeEach(freshDBWithAssociations);
-      it('should archive every entry', function() {
-        return dataCreate()
-          .then(assertCount(sequelize.models.UserHistory, 3))
-          .then(() =>
-            sequelize.models.User.destroy({
-              where: {},
-              truncate: true // truncate the entire table
-            })
-          )
-          .then(assertCount(sequelize.models.UserHistory, 6))
-          .then(() => sequelize.models.User.findOne())
-          .then(u => u.getUserHistories())
-          .then(uh =>
-            assert.exists(uh, 'The truncation did not break the associations')
-          )
-          .catch(err =>
-            assert.exists(err, 'The truncation broke the associations')
-          );
-      });
-      it('should fail to truncate', function() {
-        return dataCreate()
-          .then(() => sequelize.transaction())
-          .then(transaction => {
-            const options = { transaction };
-            assertCount(sequelize.models.UserHistory, 6, options);
-            return sequelize.models.User.destroy({
-              where: {},
-              truncate: true, // truncate the entire table
-              transaction
-            })
-              .then(assertCount(sequelize.models.UserHistory, 3, options))
-              .then(() => transaction.rollback())
-              .catch(err => assert.exists(err));
-          })
-          .then(assertCount(sequelize.models.UserHistory, 6));
       });
     });
 
@@ -1228,10 +781,11 @@ describe('Test sequelize-temporalize', function() {
     describe('interference with the original model', function() {
       beforeEach(freshDB);
       it("shouldn't delete instance methods", function() {
-        const Fruit = Temporalize({
-          model: sequelize.define('Fruit', {
-            name: DataTypes.TEXT
-          }),
+        const Fruit = sequelize.define('Fruit', {
+          name: DataTypes.TEXT
+        });
+        const FruitHistory = Temporalize({
+          model: Fruit,
           sequelize,
           temporalizeOptions: {}
         });
@@ -1250,18 +804,19 @@ describe('Test sequelize-temporalize', function() {
 
       it("shouldn't interfere with hooks of the model", function() {
         let triggered = 0;
-        const Fruit = Temporalize({
-          model: sequelize.define(
-            'Fruit',
-            { name: DataTypes.TEXT },
-            {
-              hooks: {
-                beforeCreate: function() {
-                  triggered++;
-                }
+        const Fruit = sequelize.define(
+          'Fruit',
+          { name: DataTypes.TEXT },
+          {
+            hooks: {
+              beforeCreate: function() {
+                triggered++;
               }
             }
-          ),
+          }
+        );
+        const FruitHistory = Temporalize({
+          model: Fruit,
           sequelize,
           temporalizeOptions: {}
         });
@@ -1273,15 +828,16 @@ describe('Test sequelize-temporalize', function() {
 
       it("shouldn't interfere with setters", function() {
         let triggered = 0;
-        const Fruit = Temporalize({
-          model: sequelize.define('Fruit', {
-            name: {
-              type: DataTypes.TEXT,
-              set: function() {
-                triggered++;
-              }
+        const Fruit = sequelize.define('Fruit', {
+          name: {
+            type: DataTypes.TEXT,
+            set: function() {
+              triggered++;
             }
-          }),
+          }
+        });
+        const FruitHistory = Temporalize({
+          model: Fruit,
           sequelize,
           temporalizeOptions: {}
         });
