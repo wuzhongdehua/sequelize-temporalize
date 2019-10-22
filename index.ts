@@ -45,14 +45,14 @@ export function Temporalize({
 
   const transactionIdAttr = temporalizeOptions.logTransactionId
     ? {
-        type: Sequelize.DataTypes.UUID,
+        type: Sequelize.STRING,
         allowNull: true
       }
     : undefined;
 
   const eventIdAttr = temporalizeOptions.logEventId
     ? {
-        type: Sequelize.DataTypes.UUID,
+        type: Sequelize.STRING,
         allowNull: true
       }
     : undefined;
