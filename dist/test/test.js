@@ -441,13 +441,15 @@ describe('Test sequelize-temporalize', function () {
         describe('bulk update', function () {
             beforeEach(freshDB);
             it('should archive every entry', function () {
-                return sequelize.models.User.bulkCreate([
-                    { name: 'foo1' },
-                    { name: 'foo2' }
-                ])
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.User.update({ name: 'updated-foo' }, { where: {} }))
-                    .then(assertCount(sequelize.models.UserHistory, 4));
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield sequelize.models.User.bulkCreate([
+                        { name: 'foo1' },
+                        { name: 'foo2' }
+                    ]);
+                    yield assertCount(sequelize.models.UserHistory, 2);
+                    yield sequelize.models.User.update({ name: 'updated-foo' }, { where: {} });
+                    yield assertCount(sequelize.models.UserHistory, 4);
+                });
             });
             it('should revert under transactions', function () {
                 return sequelize
@@ -469,33 +471,33 @@ describe('Test sequelize-temporalize', function () {
         describe('bulk destroy/truncate', function () {
             beforeEach(freshDB);
             it('should archive every entry', function () {
-                return sequelize.models.User.bulkCreate([
-                    { name: 'foo1' },
-                    { name: 'foo2' }
-                ])
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.User.destroy({
-                    where: {},
-                    truncate: true // truncate the entire table
-                }))
-                    .then(assertCount(sequelize.models.UserHistory, 4));
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield sequelize.models.User.bulkCreate([
+                        { name: 'foo1' },
+                        { name: 'foo2' }
+                    ]);
+                    yield assertCount(sequelize.models.UserHistory, 2);
+                    yield sequelize.models.User.destroy({
+                        where: {},
+                        truncate: true // truncate the entire table
+                    });
+                    yield assertCount(sequelize.models.UserHistory, 4);
+                });
             });
             it('should revert under transactions', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = { transaction };
-                    return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => sequelize.models.User.destroy({
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize.transaction();
+                    yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield sequelize.models.User.destroy({
                         where: {},
                         truncate: true,
                         transaction
-                    }))
-                        .then(assertCount(sequelize.models.UserHistory, 4, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
+                    });
+                    yield assertCount(sequelize.models.UserHistory, 4, { transaction });
+                    yield transaction.rollback();
+                    yield assertCount(sequelize.models.UserHistory, 0);
+                });
             });
         });
         describe('read-only ', function () {

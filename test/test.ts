@@ -541,17 +541,20 @@ describe('Test sequelize-temporalize', function() {
 
     describe('bulk update', function() {
       beforeEach(freshDB);
-      it('should archive every entry', function() {
-        return sequelize.models.User.bulkCreate([
+
+      it('should archive every entry', async function() {
+        await sequelize.models.User.bulkCreate([
           { name: 'foo1' },
           { name: 'foo2' }
-        ])
-          .then(assertCount(sequelize.models.UserHistory, 2))
-          .then(() =>
-            sequelize.models.User.update({ name: 'updated-foo' }, { where: {} })
-          )
-          .then(assertCount(sequelize.models.UserHistory, 4));
+        ]);
+        await assertCount(sequelize.models.UserHistory, 2);
+        await sequelize.models.User.update(
+          { name: 'updated-foo' },
+          { where: {} }
+        );
+        await assertCount(sequelize.models.UserHistory, 4);
       });
+
       it('should revert under transactions', function() {
         return sequelize
           .transaction()
@@ -580,41 +583,34 @@ describe('Test sequelize-temporalize', function() {
 
     describe('bulk destroy/truncate', function() {
       beforeEach(freshDB);
-      it('should archive every entry', function() {
-        return sequelize.models.User.bulkCreate([
+      it('should archive every entry', async function() {
+        await sequelize.models.User.bulkCreate([
           { name: 'foo1' },
           { name: 'foo2' }
-        ])
-          .then(assertCount(sequelize.models.UserHistory, 2))
-          .then(() =>
-            sequelize.models.User.destroy({
-              where: {},
-              truncate: true // truncate the entire table
-            })
-          )
-          .then(assertCount(sequelize.models.UserHistory, 4));
+        ]);
+        await assertCount(sequelize.models.UserHistory, 2);
+        await sequelize.models.User.destroy({
+          where: {},
+          truncate: true // truncate the entire table
+        });
+        await assertCount(sequelize.models.UserHistory, 4);
       });
-      it('should revert under transactions', function() {
-        return sequelize
-          .transaction()
-          .then(transaction => {
-            const options = { transaction };
-            return sequelize.models.User.bulkCreate(
-              [{ name: 'foo1' }, { name: 'foo2' }],
-              options
-            )
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
-              .then(() =>
-                sequelize.models.User.destroy({
-                  where: {},
-                  truncate: true, // truncate the entire table
-                  transaction
-                })
-              )
-              .then(assertCount(sequelize.models.UserHistory, 4, options))
-              .then(() => transaction.rollback());
-          })
-          .then(assertCount(sequelize.models.UserHistory, 0));
+
+      it('should revert under transactions', async function() {
+        const transaction = await sequelize.transaction();
+        await sequelize.models.User.bulkCreate(
+          [{ name: 'foo1' }, { name: 'foo2' }],
+          { transaction }
+        );
+        await assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await sequelize.models.User.destroy({
+          where: {},
+          truncate: true, // truncate the entire table
+          transaction
+        });
+        await assertCount(sequelize.models.UserHistory, 4, { transaction });
+        await transaction.rollback();
+        await assertCount(sequelize.models.UserHistory, 0);
       });
     });
 
