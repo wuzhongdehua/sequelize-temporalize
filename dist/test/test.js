@@ -274,24 +274,24 @@ describe('Test sequelize-temporalize', function () {
             it('onUpdate/onDestroy: should save to the historyDB 1', function () {
                 return __awaiter(this, void 0, void 0, function* () {
                     const user = yield sequelize.models.User.create();
-                    assertCount(sequelize.models.UserHistory, 1);
+                    yield assertCount(sequelize.models.UserHistory, 1);
                     user.name = 'foo';
                     yield user.save();
-                    assertCount(sequelize.models.UserHistory, 2);
+                    yield assertCount(sequelize.models.UserHistory, 2);
                     yield user.destroy();
-                    assertCount(sequelize.models.UserHistory, 3);
+                    yield assertCount(sequelize.models.UserHistory, 3);
                 });
             });
             it('revert on failed transactions', function () {
                 return __awaiter(this, void 0, void 0, function* () {
                     const transaction = yield sequelize.transaction();
                     const user = yield sequelize.models.User.create({ name: 'not foo' });
-                    assertCount(sequelize.models.UserHistory, 1);
+                    yield assertCount(sequelize.models.UserHistory, 1);
                     user.name = 'foo';
                     yield user.save({ transaction });
-                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
                     yield transaction.rollback();
-                    assertCount(sequelize.models.UserHistory, 1);
+                    yield assertCount(sequelize.models.UserHistory, 1);
                 });
             });
             it('should archive every entry', function () {
@@ -300,36 +300,36 @@ describe('Test sequelize-temporalize', function () {
                         { name: 'foo1' },
                         { name: 'foo2' }
                     ]);
-                    assertCount(sequelize.models.UserHistory, 2);
+                    yield assertCount(sequelize.models.UserHistory, 2);
                     yield sequelize.models.User.update({ name: 'updated-foo' }, { where: {}, individualHooks: true });
-                    assertCount(sequelize.models.UserHistory, 4);
+                    yield assertCount(sequelize.models.UserHistory, 4);
                 });
             });
             it('should revert under transactions', function () {
                 return __awaiter(this, void 0, void 0, function* () {
                     const transaction = yield sequelize.transaction();
                     yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], { transaction });
-                    assertCount(sequelize.models.UserHistory, 0);
-                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 0);
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
                     yield sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
                         transaction
                     });
-                    assertCount(sequelize.models.UserHistory, 0);
-                    assertCount(sequelize.models.UserHistory, 4, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 0);
+                    yield assertCount(sequelize.models.UserHistory, 4, { transaction });
                     yield transaction.rollback();
-                    assertCount(sequelize.models.UserHistory, 0);
+                    yield assertCount(sequelize.models.UserHistory, 0);
                 });
             });
             it('should revert on failed transactions, even when using after hooks', function () {
                 return __awaiter(this, void 0, void 0, function* () {
                     const transaction = yield sequelize.transaction();
                     const user = yield sequelize.models.User.create({ name: 'test' }, { transaction });
-                    assertCount(sequelize.models.UserHistory, 1, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 1, { transaction });
                     yield user.destroy({ transaction });
-                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
                     yield transaction.rollback();
-                    assertCount(sequelize.models.UserHistory, 0);
+                    yield assertCount(sequelize.models.UserHistory, 0);
                 });
             });
         });
@@ -337,106 +337,44 @@ describe('Test sequelize-temporalize', function () {
             describe('test there are no history association', function () {
                 beforeEach(freshDB);
                 it('Should have relations for origin models but not for history models', function () {
-                    const init = dataCreate();
-                    //Get User
-                    const user = init.then(() => sequelize.models.User.findOne());
-                    //User associations check
-                    const userHistory = user.then(u => {
-                        assert.notExists(u.getUserHistories, 'User: getUserHistories exists');
-                        return Promise.resolve('done');
-                    });
-                    const creation = user.then(u => {
-                        assert.exists(u.getCreatorCreations, 'User: getCreatorCreations does not exist');
-                        assert.exists(u.getUpdaterCreations, 'User: getUpdaterCreations does not exist');
-                        return u.getCreatorCreations();
-                    });
-                    //Creation associations check
-                    const creationHistory = creation.then(c => {
-                        assert.equal(c.length, 2, 'User: should have found 2 creations');
-                        const first = c[0];
-                        assert.notExists(first.getCreationHistories, 'Creation: getCreationHistories exists');
-                        return Promise.resolve('done');
-                    });
-                    const tag = creation.then(c => {
-                        const first = c[0];
-                        assert.exists(first.getTags, 'Creation: getTags does not exist');
-                        return first.getTags();
-                    });
-                    const event = creation.then(c => {
-                        const first = c[0];
-                        assert.exists(first.getEvent, 'Creation: getEvent does not exist');
-                        return first.getEvent();
-                    });
-                    const cUser = creation
-                        .then(c => {
-                        const first = c[0];
-                        assert.exists(first.getCreateUser, 'Creation: getCreateUser does not exist');
-                        assert.exists(first.getUpdateUser, 'Creation: getUpdateUser does not exist');
-                        return first.getCreateUser();
-                    })
-                        .then(cu => {
-                        assert.exists(cu, 'Creation: did not find CreateUser');
-                        return Promise.resolve('done');
-                    });
-                    //Tag associations check
-                    const tagHistory = tag.then(t => {
-                        assert.equal(t.length, 3, 'Creation: should have found 3 tags');
-                        const first = t[0];
-                        assert.notExists(first.getTagHistories, 'Tag: getTagHistories exists');
-                        return Promise.resolve('done');
-                    });
-                    const tCreation = tag
-                        .then(t => {
-                        const first = t[0];
-                        assert.exists(first.getCreations, 'Tag: getCreations does not exist');
-                        return first.getCreations();
-                    })
-                        .then(tc => {
-                        assert.equal(tc.length, 2, 'Tag: should have found 2 creations');
-                        return Promise.resolve('done');
-                    });
-                    //Event associations check
-                    const eventHistory = event.then(e => {
-                        assert.exists(e, 'Creation: did not find event');
-                        assert.notExists(e.getEventHistories, 'Event: getEventHistories exist');
-                        return Promise.resolve('done');
-                    });
-                    const eCreation = event
-                        .then(e => {
-                        assert.exists(e.getCreation);
-                        return e.getCreation();
-                    })
-                        .then(ec => {
-                        assert.exists(ec);
-                        return Promise.resolve('done');
-                    });
-                    //Check history data
-                    const userHistories = init.then(assertCount(sequelize.models.UserHistory, 8));
-                    const creationHistories = init.then(assertCount(sequelize.models.CreationHistory, 8));
-                    const tagHistories = init.then(assertCount(sequelize.models.TagHistory, 12));
-                    const eventHistories = init.then(assertCount(sequelize.models.EventHistory, 8));
-                    const creationTagHistories = init.then(assertCount(sequelize.models.CreationTagHistory, 8));
-                    return Promise.all([
-                        creation,
-                        creationHistories,
-                        creationHistory,
-                        creationTagHistories,
-                        cUser,
-                        eCreation,
-                        event,
-                        eventHistories,
-                        eventHistory,
-                        init,
-                        tag,
-                        tagHistories,
-                        tagHistory,
-                        tCreation,
-                        user,
-                        userHistories,
-                        userHistory
-                    ]).catch(err => {
-                        console.log(err);
-                        throw err;
+                    return __awaiter(this, void 0, void 0, function* () {
+                        yield dataCreate();
+                        //Get User
+                        const user = yield sequelize.models.User.findOne();
+                        //User associations check
+                        yield assert.notExists(user.getUserHistories, 'User: getUserHistories exists');
+                        yield assert.exists(user.getCreatorCreations, 'User: getCreatorCreations does not exist');
+                        yield assert.exists(user.getUpdaterCreations, 'User: getUpdaterCreations does not exist');
+                        const creation = yield user.getCreatorCreations();
+                        //Creation associations check
+                        yield assert.equal(creation.length, 2, 'User: should have found 2 creations');
+                        yield assert.notExists(creation[0].getCreationHistories, 'Creation: getCreationHistories exists');
+                        yield assert.exists(creation[0].getTags, 'Creation: getTags does not exist');
+                        const tag = yield creation[0].getTags();
+                        yield assert.exists(creation[0].getEvent, 'Creation: getEvent does not exist');
+                        const event = yield creation[0].getEvent();
+                        yield assert.exists(creation[0].getCreateUser, 'Creation: getCreateUser does not exist');
+                        yield assert.exists(creation[0].getUpdateUser, 'Creation: getUpdateUser does not exist');
+                        const cUser = yield creation[0].getCreateUser();
+                        yield assert.exists(cUser, 'Creation: did not find CreateUser');
+                        //Tag associations check
+                        yield assert.equal(tag.length, 3, 'Creation: should have found 3 tags');
+                        yield assert.notExists(tag[0].getTagHistories, 'Tag: getTagHistories exists');
+                        yield assert.exists(tag[0].getCreations, 'Tag: getCreations does not exist');
+                        const tCreation = yield tag[0].getCreations();
+                        yield assert.equal(tCreation.length, 2, 'Tag: should have found 2 creations');
+                        //Event associations check
+                        yield assert.exists(event, 'Creation: did not find event');
+                        yield assert.notExists(event.getEventHistories, 'Event: getEventHistories exist');
+                        yield assert.exists(event.getCreation);
+                        const eCreation = yield event.getCreation();
+                        yield assert.exists(eCreation);
+                        //Check history data
+                        yield assertCount(sequelize.models.UserHistory, 8);
+                        yield assertCount(sequelize.models.CreationHistory, 8);
+                        yield assertCount(sequelize.models.TagHistory, 12);
+                        yield assertCount(sequelize.models.EventHistory, 8);
+                        yield assertCount(sequelize.models.CreationTagHistory, 8);
                     });
                 });
             });

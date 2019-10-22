@@ -310,23 +310,23 @@ describe('Test sequelize-temporalize', function() {
 
       it('onUpdate/onDestroy: should save to the historyDB 1', async function() {
         const user = await sequelize.models.User.create();
-        assertCount(sequelize.models.UserHistory, 1);
+        await assertCount(sequelize.models.UserHistory, 1);
         user.name = 'foo';
         await user.save();
-        assertCount(sequelize.models.UserHistory, 2);
+        await assertCount(sequelize.models.UserHistory, 2);
         await user.destroy();
-        assertCount(sequelize.models.UserHistory, 3);
+        await assertCount(sequelize.models.UserHistory, 3);
       });
 
       it('revert on failed transactions', async function() {
         const transaction = await sequelize.transaction();
         const user = await sequelize.models.User.create({ name: 'not foo' });
-        assertCount(sequelize.models.UserHistory, 1);
+        await assertCount(sequelize.models.UserHistory, 1);
         user.name = 'foo';
         await user.save({ transaction });
-        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await assertCount(sequelize.models.UserHistory, 2, { transaction });
         await transaction.rollback();
-        assertCount(sequelize.models.UserHistory, 1);
+        await assertCount(sequelize.models.UserHistory, 1);
       });
 
       it('should archive every entry', async function() {
@@ -334,12 +334,12 @@ describe('Test sequelize-temporalize', function() {
           { name: 'foo1' },
           { name: 'foo2' }
         ]);
-        assertCount(sequelize.models.UserHistory, 2);
+        await assertCount(sequelize.models.UserHistory, 2);
         await sequelize.models.User.update(
           { name: 'updated-foo' },
           { where: {}, individualHooks: true }
         );
-        assertCount(sequelize.models.UserHistory, 4);
+        await assertCount(sequelize.models.UserHistory, 4);
       });
 
       it('should revert under transactions', async function() {
@@ -348,8 +348,8 @@ describe('Test sequelize-temporalize', function() {
           [{ name: 'foo1' }, { name: 'foo2' }],
           { transaction }
         );
-        assertCount(sequelize.models.UserHistory, 0);
-        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await assertCount(sequelize.models.UserHistory, 0);
+        await assertCount(sequelize.models.UserHistory, 2, { transaction });
         await sequelize.models.User.update(
           { name: 'updated-foo' },
           {
@@ -357,10 +357,10 @@ describe('Test sequelize-temporalize', function() {
             transaction
           }
         );
-        assertCount(sequelize.models.UserHistory, 0);
-        assertCount(sequelize.models.UserHistory, 4, { transaction });
+        await assertCount(sequelize.models.UserHistory, 0);
+        await assertCount(sequelize.models.UserHistory, 4, { transaction });
         await transaction.rollback();
-        assertCount(sequelize.models.UserHistory, 0);
+        await assertCount(sequelize.models.UserHistory, 0);
       });
 
       it('should revert on failed transactions, even when using after hooks', async function() {
@@ -369,169 +369,116 @@ describe('Test sequelize-temporalize', function() {
           { name: 'test' },
           { transaction }
         );
-        assertCount(sequelize.models.UserHistory, 1, { transaction });
+        await assertCount(sequelize.models.UserHistory, 1, { transaction });
         await user.destroy({ transaction });
-        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await assertCount(sequelize.models.UserHistory, 2, { transaction });
         await transaction.rollback();
-        assertCount(sequelize.models.UserHistory, 0);
+        await assertCount(sequelize.models.UserHistory, 0);
       });
     });
 
     describe('Association Tests', function() {
       describe('test there are no history association', function() {
         beforeEach(freshDB);
-        it('Should have relations for origin models but not for history models', function() {
-          const init = dataCreate();
+
+        it('Should have relations for origin models but not for history models', async function() {
+          await dataCreate();
 
           //Get User
-          const user = init.then(() => sequelize.models.User.findOne());
+          const user = await sequelize.models.User.findOne();
 
           //User associations check
-          const userHistory = user.then(u => {
-            assert.notExists(
-              u.getUserHistories,
-              'User: getUserHistories exists'
-            );
-            return Promise.resolve('done');
-          });
+          await assert.notExists(
+            user.getUserHistories,
+            'User: getUserHistories exists'
+          );
 
-          const creation = user.then(u => {
-            assert.exists(
-              u.getCreatorCreations,
-              'User: getCreatorCreations does not exist'
-            );
-            assert.exists(
-              u.getUpdaterCreations,
-              'User: getUpdaterCreations does not exist'
-            );
-            return u.getCreatorCreations();
-          });
+          await assert.exists(
+            user.getCreatorCreations,
+            'User: getCreatorCreations does not exist'
+          );
+          await assert.exists(
+            user.getUpdaterCreations,
+            'User: getUpdaterCreations does not exist'
+          );
+          const creation = await user.getCreatorCreations();
 
           //Creation associations check
-          const creationHistory = creation.then(c => {
-            assert.equal(c.length, 2, 'User: should have found 2 creations');
-            const first = c[0];
-            assert.notExists(
-              first.getCreationHistories,
-              'Creation: getCreationHistories exists'
-            );
-            return Promise.resolve('done');
-          });
+          await assert.equal(
+            creation.length,
+            2,
+            'User: should have found 2 creations'
+          );
+          await assert.notExists(
+            creation[0].getCreationHistories,
+            'Creation: getCreationHistories exists'
+          );
 
-          const tag = creation.then(c => {
-            const first = c[0];
-            assert.exists(first.getTags, 'Creation: getTags does not exist');
-            return first.getTags();
-          });
+          await assert.exists(
+            creation[0].getTags,
+            'Creation: getTags does not exist'
+          );
+          const tag = await creation[0].getTags();
 
-          const event = creation.then(c => {
-            const first = c[0];
-            assert.exists(first.getEvent, 'Creation: getEvent does not exist');
-            return first.getEvent();
-          });
+          await assert.exists(
+            creation[0].getEvent,
+            'Creation: getEvent does not exist'
+          );
+          const event = await creation[0].getEvent();
 
-          const cUser = creation
-            .then(c => {
-              const first = c[0];
-              assert.exists(
-                first.getCreateUser,
-                'Creation: getCreateUser does not exist'
-              );
-              assert.exists(
-                first.getUpdateUser,
-                'Creation: getUpdateUser does not exist'
-              );
-              return first.getCreateUser();
-            })
-            .then(cu => {
-              assert.exists(cu, 'Creation: did not find CreateUser');
-              return Promise.resolve('done');
-            });
+          await assert.exists(
+            creation[0].getCreateUser,
+            'Creation: getCreateUser does not exist'
+          );
+          await assert.exists(
+            creation[0].getUpdateUser,
+            'Creation: getUpdateUser does not exist'
+          );
+          const cUser = await creation[0].getCreateUser();
+          await assert.exists(cUser, 'Creation: did not find CreateUser');
 
           //Tag associations check
-          const tagHistory = tag.then(t => {
-            assert.equal(t.length, 3, 'Creation: should have found 3 tags');
-            const first = t[0];
-            assert.notExists(
-              first.getTagHistories,
-              'Tag: getTagHistories exists'
-            );
-            return Promise.resolve('done');
-          });
+          await assert.equal(
+            tag.length,
+            3,
+            'Creation: should have found 3 tags'
+          );
+          await assert.notExists(
+            tag[0].getTagHistories,
+            'Tag: getTagHistories exists'
+          );
 
-          const tCreation = tag
-            .then(t => {
-              const first = t[0];
-              assert.exists(
-                first.getCreations,
-                'Tag: getCreations does not exist'
-              );
-              return first.getCreations();
-            })
-            .then(tc => {
-              assert.equal(tc.length, 2, 'Tag: should have found 2 creations');
-              return Promise.resolve('done');
-            });
+          await assert.exists(
+            tag[0].getCreations,
+            'Tag: getCreations does not exist'
+          );
+          const tCreation = await tag[0].getCreations();
+
+          await assert.equal(
+            tCreation.length,
+            2,
+            'Tag: should have found 2 creations'
+          );
 
           //Event associations check
-          const eventHistory = event.then(e => {
-            assert.exists(e, 'Creation: did not find event');
-            assert.notExists(
-              e.getEventHistories,
-              'Event: getEventHistories exist'
-            );
-            return Promise.resolve('done');
-          });
+          await assert.exists(event, 'Creation: did not find event');
+          await assert.notExists(
+            event.getEventHistories,
+            'Event: getEventHistories exist'
+          );
 
-          const eCreation = event
-            .then(e => {
-              assert.exists(e.getCreation);
-              return e.getCreation();
-            })
-            .then(ec => {
-              assert.exists(ec);
-              return Promise.resolve('done');
-            });
+          await assert.exists(event.getCreation);
+          const eCreation = await event.getCreation();
+          await assert.exists(eCreation);
 
           //Check history data
-          const userHistories = init.then(
-            assertCount(sequelize.models.UserHistory, 8)
-          );
-          const creationHistories = init.then(
-            assertCount(sequelize.models.CreationHistory, 8)
-          );
-          const tagHistories = init.then(
-            assertCount(sequelize.models.TagHistory, 12)
-          );
-          const eventHistories = init.then(
-            assertCount(sequelize.models.EventHistory, 8)
-          );
-          const creationTagHistories = init.then(
-            assertCount(sequelize.models.CreationTagHistory, 8)
-          );
+          await assertCount(sequelize.models.UserHistory, 8);
+          await assertCount(sequelize.models.CreationHistory, 8);
 
-          return Promise.all([
-            creation,
-            creationHistories,
-            creationHistory,
-            creationTagHistories,
-            cUser,
-            eCreation,
-            event,
-            eventHistories,
-            eventHistory,
-            init,
-            tag,
-            tagHistories,
-            tagHistory,
-            tCreation,
-            user,
-            userHistories,
-            userHistory
-          ]).catch(err => {
-            console.log(err);
-            throw err;
-          });
+          await assertCount(sequelize.models.TagHistory, 12);
+
+          await assertCount(sequelize.models.EventHistory, 8);
+          await assertCount(sequelize.models.CreationTagHistory, 8);
         });
       });
     });
