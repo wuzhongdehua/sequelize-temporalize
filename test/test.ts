@@ -6,6 +6,11 @@ import * as fs from 'fs';
 chai.use(chaiAsPromised);
 const assert = chai.assert;
 
+// TODO: future tests
+// Test paranoid: true and paranoid: false
+// Test timestamps: true and timestamps: false
+// Test logEventId and logTransactionId
+
 describe('Test sequelize-temporalize', function() {
   let sequelize;
 
@@ -37,7 +42,7 @@ describe('Test sequelize-temporalize', function() {
       logging: false //console.log
     });
 
-    //Define origin models
+    // Define origin models
     const User = sequelize.define('User', { name: DataTypes.TEXT }, options);
     const Creation = sequelize.define(
       'Creation',

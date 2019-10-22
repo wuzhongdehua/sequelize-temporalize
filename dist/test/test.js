@@ -17,6 +17,10 @@ const chai_as_promised_1 = __importDefault(require("chai-as-promised"));
 const fs = __importStar(require("fs"));
 chai.use(chai_as_promised_1.default);
 const assert = chai.assert;
+// TODO: future tests
+// Test paranoid: true and paranoid: false
+// Test timestamps: true and timestamps: false
+// Test logEventId and logTransactionId
 describe('Test sequelize-temporalize', function () {
     let sequelize;
     function newDB({ options, temporalizeOptions } = {}) {
@@ -37,7 +41,7 @@ describe('Test sequelize-temporalize', function () {
             storage: dbFile,
             logging: false //console.log
         });
-        //Define origin models
+        // Define origin models
         const User = sequelize.define('User', { name: sequelize_1.DataTypes.TEXT }, options);
         const Creation = sequelize.define('Creation', {
             name: sequelize_1.DataTypes.TEXT,
