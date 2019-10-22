@@ -616,6 +616,7 @@ describe('Test sequelize-temporalize', function() {
 
     describe('read-only ', function() {
       beforeEach(freshDB);
+
       it('should forbid updates', function() {
         const userUpdate = sequelize.models.UserHistory.create({
           name: 'bla00'
@@ -624,6 +625,7 @@ describe('Test sequelize-temporalize', function() {
         // @ts-ignore
         return assert.isRejected(userUpdate, Error, 'Validation error');
       });
+
       it('should forbid deletes', function() {
         const userUpdate = sequelize.models.UserHistory.create({
           name: 'bla00'
@@ -635,7 +637,8 @@ describe('Test sequelize-temporalize', function() {
 
     describe('interference with the original model', function() {
       beforeEach(freshDB);
-      it("shouldn't delete instance methods", function() {
+
+      it("shouldn't delete instance methods", async function() {
         const Fruit = sequelize.define('Fruit', {
           name: DataTypes.TEXT
         });
@@ -647,17 +650,13 @@ describe('Test sequelize-temporalize', function() {
         Fruit.prototype.sayHi = () => {
           return 2;
         };
-
-        return sequelize
-          .sync()
-          .then(() => Fruit.create())
-          .then(f => {
-            assert.isFunction(f.sayHi);
-            assert.equal(f.sayHi(), 2);
-          });
+        await sequelize.sync();
+        const f = await Fruit.create();
+        assert.isFunction(f.sayHi);
+        assert.equal(f.sayHi(), 2);
       });
 
-      it("shouldn't interfere with hooks of the model", function() {
+      it("shouldn't interfere with hooks of the model", async function() {
         let triggered = 0;
         const Fruit = sequelize.define(
           'Fruit',
@@ -675,13 +674,12 @@ describe('Test sequelize-temporalize', function() {
           sequelize,
           temporalizeOptions: {}
         });
-        return sequelize
-          .sync()
-          .then(() => Fruit.create())
-          .then(f => assert.equal(triggered, 1, 'hook trigger count'));
+        await sequelize.sync();
+        await Fruit.create();
+        assert.equal(triggered, 1, 'hook trigger count');
       });
 
-      it("shouldn't interfere with setters", function() {
+      it("shouldn't interfere with setters", async function() {
         let triggered = 0;
         const Fruit = sequelize.define('Fruit', {
           name: {
@@ -696,10 +694,9 @@ describe('Test sequelize-temporalize', function() {
           sequelize,
           temporalizeOptions: {}
         });
-        return sequelize
-          .sync()
-          .then(() => Fruit.create({ name: 'apple' }))
-          .then(f => assert.equal(triggered, 1, 'hook trigger count'));
+        await sequelize.sync();
+        await Fruit.create({ name: 'apple' });
+        assert.equal(triggered, 1, 'hook trigger count');
       });
     });
   }

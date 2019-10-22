@@ -520,63 +520,64 @@ describe('Test sequelize-temporalize', function () {
         describe('interference with the original model', function () {
             beforeEach(freshDB);
             it("shouldn't delete instance methods", function () {
-                const Fruit = sequelize.define('Fruit', {
-                    name: sequelize_1.DataTypes.TEXT
-                });
-                const FruitHistory = index_1.Temporalize({
-                    model: Fruit,
-                    sequelize,
-                    temporalizeOptions: {}
-                });
-                Fruit.prototype.sayHi = () => {
-                    return 2;
-                };
-                return sequelize
-                    .sync()
-                    .then(() => Fruit.create())
-                    .then(f => {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const Fruit = sequelize.define('Fruit', {
+                        name: sequelize_1.DataTypes.TEXT
+                    });
+                    const FruitHistory = index_1.Temporalize({
+                        model: Fruit,
+                        sequelize,
+                        temporalizeOptions: {}
+                    });
+                    Fruit.prototype.sayHi = () => {
+                        return 2;
+                    };
+                    yield sequelize.sync();
+                    const f = yield Fruit.create();
                     assert.isFunction(f.sayHi);
                     assert.equal(f.sayHi(), 2);
                 });
             });
             it("shouldn't interfere with hooks of the model", function () {
-                let triggered = 0;
-                const Fruit = sequelize.define('Fruit', { name: sequelize_1.DataTypes.TEXT }, {
-                    hooks: {
-                        beforeCreate: function () {
-                            triggered++;
+                return __awaiter(this, void 0, void 0, function* () {
+                    let triggered = 0;
+                    const Fruit = sequelize.define('Fruit', { name: sequelize_1.DataTypes.TEXT }, {
+                        hooks: {
+                            beforeCreate: function () {
+                                triggered++;
+                            }
                         }
-                    }
+                    });
+                    const FruitHistory = index_1.Temporalize({
+                        model: Fruit,
+                        sequelize,
+                        temporalizeOptions: {}
+                    });
+                    yield sequelize.sync();
+                    yield Fruit.create();
+                    assert.equal(triggered, 1, 'hook trigger count');
                 });
-                const FruitHistory = index_1.Temporalize({
-                    model: Fruit,
-                    sequelize,
-                    temporalizeOptions: {}
-                });
-                return sequelize
-                    .sync()
-                    .then(() => Fruit.create())
-                    .then(f => assert.equal(triggered, 1, 'hook trigger count'));
             });
             it("shouldn't interfere with setters", function () {
-                let triggered = 0;
-                const Fruit = sequelize.define('Fruit', {
-                    name: {
-                        type: sequelize_1.DataTypes.TEXT,
-                        set: function () {
-                            triggered++;
+                return __awaiter(this, void 0, void 0, function* () {
+                    let triggered = 0;
+                    const Fruit = sequelize.define('Fruit', {
+                        name: {
+                            type: sequelize_1.DataTypes.TEXT,
+                            set: function () {
+                                triggered++;
+                            }
                         }
-                    }
+                    });
+                    const FruitHistory = index_1.Temporalize({
+                        model: Fruit,
+                        sequelize,
+                        temporalizeOptions: {}
+                    });
+                    yield sequelize.sync();
+                    yield Fruit.create({ name: 'apple' });
+                    assert.equal(triggered, 1, 'hook trigger count');
                 });
-                const FruitHistory = index_1.Temporalize({
-                    model: Fruit,
-                    sequelize,
-                    temporalizeOptions: {}
-                });
-                return sequelize
-                    .sync()
-                    .then(() => Fruit.create({ name: 'apple' }))
-                    .then(f => assert.equal(triggered, 1, 'hook trigger count'));
             });
         });
     }
