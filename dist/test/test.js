@@ -1,4 +1,12 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -128,172 +136,111 @@ describe('Test sequelize-temporalize', function () {
     // tags,creations,user,events are renamed 3 times to generate 3 history data
     // 1 tag is removed and re-added to a creation to create 1 history entry in the CreationTags table
     function dataCreate() {
-        const tag1 = sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
-            t.name = 'tag01 renamed';
-            t.save();
-            t.name = 'tag01 renamed twice';
-            t.save();
-            t.name = 'tag01 renamed three times';
-            t.save();
-            return t;
+        return __awaiter(this, void 0, void 0, function* () {
+            const tag1 = yield sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
+                t.name = 'tag01 renamed';
+                t.save();
+                t.name = 'tag01 renamed twice';
+                t.save();
+                t.name = 'tag01 renamed three times';
+                t.save();
+                return t;
+            });
+            const tag2 = yield sequelize.models.Tag.create({ name: 'tag02' }).then(t => {
+                t.name = 'tag02 renamed';
+                t.save();
+                t.name = 'tag02 renamed twice';
+                t.save();
+                t.name = 'tag02 renamed three times';
+                t.save();
+                return t;
+            });
+            const tag3 = yield sequelize.models.Tag.create({ name: 'tag03' }).then(t => {
+                t.name = 'tag03 renamed';
+                t.save();
+                t.name = 'tag03 renamed twice';
+                t.save();
+                t.name = 'tag03 renamed three times';
+                t.save();
+                return t;
+            });
+            const user1 = yield sequelize.models.User.create({ name: 'user01' }).then(u => {
+                u.name = 'user01 renamed';
+                u.save();
+                u.name = 'user01 renamed twice';
+                u.save();
+                u.name = 'user01 renamed three times';
+                u.save();
+                return u;
+            });
+            const user2 = yield sequelize.models.User.create({ name: 'user02' }).then(u => {
+                u.name = 'user02 renamed';
+                u.save();
+                u.name = 'user02 renamed twice';
+                u.save();
+                u.name = 'user02 renamed three times';
+                u.save();
+                return u;
+            });
+            const creation1 = yield sequelize.models.Creation.create({
+                name: 'creation01',
+                user: user1.id,
+                user2: user2.id
+            }).then(c => {
+                c.name = 'creation01 renamed';
+                c.save();
+                c.name = 'creation01 renamed twice';
+                c.save();
+                c.name = 'creation01 renamed three times';
+                c.save();
+                return c;
+            });
+            const creation2 = yield sequelize.models.Creation.create({
+                name: 'creation02',
+                user: user1.id,
+                user2: user2.id
+            }).then(c => {
+                c.name = 'creation02 renamed';
+                c.save();
+                c.name = 'creation02 renamed twice';
+                c.save();
+                c.name = 'creation02 renamed three times';
+                c.save();
+                return c;
+            });
+            const event1 = yield sequelize.models.Event.create({
+                name: 'event01',
+                creation: creation1.id
+            }).then(e => {
+                e.name = 'event01 renamed';
+                e.save();
+                e.name = 'event01 renamed twice';
+                e.save();
+                e.name = 'event01 renamed three times';
+                e.save();
+                return e;
+            });
+            const event2 = yield sequelize.models.Event.create({
+                name: 'event02',
+                creation: creation2.id
+            }).then(e => {
+                e.name = 'event02 renamed';
+                e.save();
+                e.name = 'event02 renamed twice';
+                e.save();
+                e.name = 'event02 renamed three times';
+                e.save();
+                return e;
+            });
+            const creationTag1 = yield creation1.addTag(tag1);
+            const creationTag1_rem = yield creation1.removeTag(tag1);
+            const creationTag1_rea = yield creation1.addTag(tag1);
+            const creationTag2 = yield creation1.addTag(tag2);
+            const creationTag3 = yield creation1.addTag(tag3);
+            const creationTag4 = yield creation2.addTag(tag1);
+            const creationTag5 = yield creation2.addTag(tag2);
+            const creationTag6 = yield creation2.addTag(tag3);
         });
-        const tag2 = sequelize.models.Tag.create({ name: 'tag02' }).then(t => {
-            t.name = 'tag02 renamed';
-            t.save();
-            t.name = 'tag02 renamed twice';
-            t.save();
-            t.name = 'tag02 renamed three times';
-            t.save();
-            return t;
-        });
-        const tag3 = sequelize.models.Tag.create({ name: 'tag03' }).then(t => {
-            t.name = 'tag03 renamed';
-            t.save();
-            t.name = 'tag03 renamed twice';
-            t.save();
-            t.name = 'tag03 renamed three times';
-            t.save();
-            return t;
-        });
-        const user1 = sequelize.models.User.create({ name: 'user01' }).then(u => {
-            u.name = 'user01 renamed';
-            u.save();
-            u.name = 'user01 renamed twice';
-            u.save();
-            u.name = 'user01 renamed three times';
-            u.save();
-            return u;
-        });
-        const user2 = sequelize.models.User.create({ name: 'user02' }).then(u => {
-            u.name = 'user02 renamed';
-            u.save();
-            u.name = 'user02 renamed twice';
-            u.save();
-            u.name = 'user02 renamed three times';
-            u.save();
-            return u;
-        });
-        const creation1 = Promise.all([user1, user2])
-            .then(allU => sequelize.models.Creation.create({
-            name: 'creation01',
-            user: allU[0].id,
-            user2: allU[1].id
-        }))
-            .then(c => {
-            c.name = 'creation01 renamed';
-            c.save();
-            c.name = 'creation01 renamed twice';
-            c.save();
-            c.name = 'creation01 renamed three times';
-            c.save();
-            return c;
-        });
-        const creation2 = Promise.all([user1, user2])
-            .then(allU => sequelize.models.Creation.create({
-            name: 'creation02',
-            user: allU[0].id,
-            user2: allU[1].id
-        }))
-            .then(c => {
-            c.name = 'creation02 renamed';
-            c.save();
-            c.name = 'creation02 renamed twice';
-            c.save();
-            c.name = 'creation02 renamed three times';
-            c.save();
-            return c;
-        });
-        const event1 = creation1
-            .then(c => sequelize.models.Event.create({
-            name: 'event01',
-            creation: c.id
-        }))
-            .then(e => {
-            e.name = 'event01 renamed';
-            e.save();
-            e.name = 'event01 renamed twice';
-            e.save();
-            e.name = 'event01 renamed three times';
-            e.save();
-            return e;
-        });
-        const event2 = creation2
-            .then(c => sequelize.models.Event.create({
-            name: 'event02',
-            creation: c.id
-        }))
-            .then(e => {
-            e.name = 'event02 renamed';
-            e.save();
-            e.name = 'event02 renamed twice';
-            e.save();
-            e.name = 'event02 renamed three times';
-            e.save();
-            return e;
-        });
-        const creationTag1 = Promise.all([tag1, creation1]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag1_rem = Promise.all([tag1, creation1, creationTag1]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.removeTag(t);
-        });
-        const creationTag1_rea = Promise.all([
-            tag1,
-            creation1,
-            creationTag1_rem
-        ]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag2 = Promise.all([tag2, creation1]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag3 = Promise.all([tag3, creation1]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag4 = Promise.all([tag1, creation2]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag5 = Promise.all([tag2, creation2]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        const creationTag6 = Promise.all([tag3, creation2]).then(models => {
-            const t = models[0];
-            const c = models[1];
-            return c.addTag(t);
-        });
-        return Promise.all([
-            event1,
-            event2,
-            tag1,
-            tag2,
-            tag3,
-            user1,
-            user2,
-            creation1,
-            creation2,
-            creationTag1,
-            creationTag2,
-            creationTag3,
-            creationTag4,
-            creationTag5,
-            creationTag6,
-            creationTag1_rea,
-            creationTag1_rem
-        ]);
     }
     function freshDB() {
         return newDB({ options: { paranoid: false, timestamps: false } });
