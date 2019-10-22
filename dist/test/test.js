@@ -253,6 +253,11 @@ describe('Test sequelize-temporalize', function () {
             }
         });
     }
+    // function assertCount(modelHistory, n, options?) {
+    //   modelHistory.count(options).then(count => {
+    //     assert.equal(count, n, 'history entries ' + modelHistory.name);
+    //   });
+    // }
     function assertCount(modelHistory, n, options) {
         // wrapped, chainable promise
         return function (obj) {
@@ -267,71 +272,65 @@ describe('Test sequelize-temporalize', function () {
         describe('DB Tests', function () {
             beforeEach(freshDB);
             it('onUpdate/onDestroy: should save to the historyDB 1', function () {
-                return sequelize.models.User.create()
-                    .then(assertCount(sequelize.models.UserHistory, 1))
-                    .then(user => {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const user = yield sequelize.models.User.create();
+                    assertCount(sequelize.models.UserHistory, 1);
                     user.name = 'foo';
-                    return user.save();
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(user => user.destroy())
-                    .then(assertCount(sequelize.models.UserHistory, 3));
+                    yield user.save();
+                    assertCount(sequelize.models.UserHistory, 2);
+                    yield user.destroy();
+                    assertCount(sequelize.models.UserHistory, 3);
+                });
             });
             it('revert on failed transactions', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = { transaction };
-                    return sequelize.models.User.create({ name: 'not foo' })
-                        .then(assertCount(sequelize.models.UserHistory, 1))
-                        .then(user => {
-                        user.name = 'foo';
-                        return user.save(options);
-                    })
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 1));
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize.transaction();
+                    const user = yield sequelize.models.User.create({ name: 'not foo' });
+                    assertCount(sequelize.models.UserHistory, 1);
+                    user.name = 'foo';
+                    yield user.save({ transaction });
+                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield transaction.rollback();
+                    assertCount(sequelize.models.UserHistory, 1);
+                });
             });
             it('should archive every entry', function () {
-                return sequelize.models.User.bulkCreate([
-                    { name: 'foo1' },
-                    { name: 'foo2' }
-                ])
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.User.update({ name: 'updated-foo' }, { where: {}, individualHooks: true }))
-                    .then(assertCount(sequelize.models.UserHistory, 4));
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield sequelize.models.User.bulkCreate([
+                        { name: 'foo1' },
+                        { name: 'foo2' }
+                    ]);
+                    assertCount(sequelize.models.UserHistory, 2);
+                    yield sequelize.models.User.update({ name: 'updated-foo' }, { where: {}, individualHooks: true });
+                    assertCount(sequelize.models.UserHistory, 4);
+                });
             });
             it('should revert under transactions', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = { transaction };
-                    return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
-                        .then(assertCount(sequelize.models.UserHistory, 0))
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => sequelize.models.User.update({ name: 'updated-foo' }, {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize.transaction();
+                    yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], { transaction });
+                    assertCount(sequelize.models.UserHistory, 0);
+                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
                         transaction
-                    }))
-                        .then(assertCount(sequelize.models.UserHistory, 0))
-                        .then(assertCount(sequelize.models.UserHistory, 4, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
+                    });
+                    assertCount(sequelize.models.UserHistory, 0);
+                    assertCount(sequelize.models.UserHistory, 4, { transaction });
+                    yield transaction.rollback();
+                    assertCount(sequelize.models.UserHistory, 0);
+                });
             });
             it('should revert on failed transactions, even when using after hooks', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = { transaction };
-                    return sequelize.models.User.create({ name: 'test' }, options)
-                        .then(assertCount(sequelize.models.UserHistory, 1, options))
-                        .then(user => user.destroy(options))
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize.transaction();
+                    const user = yield sequelize.models.User.create({ name: 'test' }, { transaction });
+                    assertCount(sequelize.models.UserHistory, 1, { transaction });
+                    yield user.destroy({ transaction });
+                    assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield transaction.rollback();
+                    assertCount(sequelize.models.UserHistory, 0);
+                });
             });
         });
         describe('Association Tests', function () {

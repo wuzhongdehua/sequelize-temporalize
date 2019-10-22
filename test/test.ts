@@ -286,6 +286,12 @@ describe('Test sequelize-temporalize', function() {
     });
   }
 
+  // function assertCount(modelHistory, n, options?) {
+  //   modelHistory.count(options).then(count => {
+  //     assert.equal(count, n, 'history entries ' + modelHistory.name);
+  //   });
+  // }
+
   function assertCount(modelHistory, n, options?) {
     // wrapped, chainable promise
     return function(obj) {
@@ -302,89 +308,72 @@ describe('Test sequelize-temporalize', function() {
     describe('DB Tests', function() {
       beforeEach(freshDB);
 
-      it('onUpdate/onDestroy: should save to the historyDB 1', function() {
-        return sequelize.models.User.create()
-          .then(assertCount(sequelize.models.UserHistory, 1))
-          .then(user => {
-            user.name = 'foo';
-            return user.save();
-          })
-          .then(assertCount(sequelize.models.UserHistory, 2))
-          .then(user => user.destroy())
-          .then(assertCount(sequelize.models.UserHistory, 3));
+      it('onUpdate/onDestroy: should save to the historyDB 1', async function() {
+        const user = await sequelize.models.User.create();
+        assertCount(sequelize.models.UserHistory, 1);
+        user.name = 'foo';
+        await user.save();
+        assertCount(sequelize.models.UserHistory, 2);
+        await user.destroy();
+        assertCount(sequelize.models.UserHistory, 3);
       });
 
-      it('revert on failed transactions', function() {
-        return sequelize
-          .transaction()
-          .then(transaction => {
-            const options = { transaction };
-            return sequelize.models.User.create({ name: 'not foo' })
-              .then(assertCount(sequelize.models.UserHistory, 1))
-              .then(user => {
-                user.name = 'foo';
-                return user.save(options);
-              })
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
-              .then(() => transaction.rollback());
-          })
-          .then(assertCount(sequelize.models.UserHistory, 1));
+      it('revert on failed transactions', async function() {
+        const transaction = await sequelize.transaction();
+        const user = await sequelize.models.User.create({ name: 'not foo' });
+        assertCount(sequelize.models.UserHistory, 1);
+        user.name = 'foo';
+        await user.save({ transaction });
+        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await transaction.rollback();
+        assertCount(sequelize.models.UserHistory, 1);
       });
 
-      it('should archive every entry', function() {
-        return sequelize.models.User.bulkCreate([
+      it('should archive every entry', async function() {
+        await sequelize.models.User.bulkCreate([
           { name: 'foo1' },
           { name: 'foo2' }
-        ])
-          .then(assertCount(sequelize.models.UserHistory, 2))
-          .then(() =>
-            sequelize.models.User.update(
-              { name: 'updated-foo' },
-              { where: {}, individualHooks: true }
-            )
-          )
-          .then(assertCount(sequelize.models.UserHistory, 4));
+        ]);
+        assertCount(sequelize.models.UserHistory, 2);
+        await sequelize.models.User.update(
+          { name: 'updated-foo' },
+          { where: {}, individualHooks: true }
+        );
+        assertCount(sequelize.models.UserHistory, 4);
       });
 
-      it('should revert under transactions', function() {
-        return sequelize
-          .transaction()
-          .then(transaction => {
-            const options = { transaction };
-            return sequelize.models.User.bulkCreate(
-              [{ name: 'foo1' }, { name: 'foo2' }],
-              options
-            )
-              .then(assertCount(sequelize.models.UserHistory, 0))
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
-              .then(() =>
-                sequelize.models.User.update(
-                  { name: 'updated-foo' },
-                  {
-                    where: {},
-                    transaction
-                  }
-                )
-              )
-              .then(assertCount(sequelize.models.UserHistory, 0))
-              .then(assertCount(sequelize.models.UserHistory, 4, options))
-              .then(() => transaction.rollback());
-          })
-          .then(assertCount(sequelize.models.UserHistory, 0));
+      it('should revert under transactions', async function() {
+        const transaction = await sequelize.transaction();
+        await sequelize.models.User.bulkCreate(
+          [{ name: 'foo1' }, { name: 'foo2' }],
+          { transaction }
+        );
+        assertCount(sequelize.models.UserHistory, 0);
+        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await sequelize.models.User.update(
+          { name: 'updated-foo' },
+          {
+            where: {},
+            transaction
+          }
+        );
+        assertCount(sequelize.models.UserHistory, 0);
+        assertCount(sequelize.models.UserHistory, 4, { transaction });
+        await transaction.rollback();
+        assertCount(sequelize.models.UserHistory, 0);
       });
 
-      it('should revert on failed transactions, even when using after hooks', function() {
-        return sequelize
-          .transaction()
-          .then(transaction => {
-            const options = { transaction };
-            return sequelize.models.User.create({ name: 'test' }, options)
-              .then(assertCount(sequelize.models.UserHistory, 1, options))
-              .then(user => user.destroy(options))
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
-              .then(() => transaction.rollback());
-          })
-          .then(assertCount(sequelize.models.UserHistory, 0));
+      it('should revert on failed transactions, even when using after hooks', async function() {
+        const transaction = await sequelize.transaction();
+        const user = await sequelize.models.User.create(
+          { name: 'test' },
+          { transaction }
+        );
+        assertCount(sequelize.models.UserHistory, 1, { transaction });
+        await user.destroy({ transaction });
+        assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await transaction.rollback();
+        assertCount(sequelize.models.UserHistory, 0);
       });
     });
 
