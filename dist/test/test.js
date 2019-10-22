@@ -382,63 +382,60 @@ describe('Test sequelize-temporalize', function () {
         describe('hooks', function () {
             beforeEach(freshDB);
             it('onCreate: should store the new version in history db', function () {
-                return sequelize.models.User.create({ name: 'test' }).then(assertCount(sequelize.models.UserHistory, 1));
+                return __awaiter(this, void 0, void 0, function* () {
+                    yield sequelize.models.User.create({ name: 'test' });
+                    yield assertCount(sequelize.models.UserHistory, 1);
+                });
             });
             it('onUpdate/onDestroy: should save to the historyDB', function () {
-                return sequelize.models.User.create()
-                    .then(assertCount(sequelize.models.UserHistory, 1))
-                    .then(user => {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const user = yield sequelize.models.User.create();
+                    yield assertCount(sequelize.models.UserHistory, 1);
                     user.name = 'foo';
-                    return user.save();
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(user => user.destroy())
-                    .then(assertCount(sequelize.models.UserHistory, 3));
+                    yield user.save();
+                    yield assertCount(sequelize.models.UserHistory, 2);
+                    yield user.destroy();
+                    yield assertCount(sequelize.models.UserHistory, 3);
+                });
             });
             it('onUpdate: should store the previous version to the historyDB', function () {
-                return sequelize.models.User.create({ name: 'foo' })
-                    .then(assertCount(sequelize.models.UserHistory, 1))
-                    .then(user => {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const user = yield sequelize.models.User.create({ name: 'foo' });
+                    yield assertCount(sequelize.models.UserHistory, 1);
                     user.name = 'bar';
-                    return user.save();
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(users => {
-                    assert.equal(users.length, 2, 'multiple entries');
-                })
-                    .then(user => sequelize.models.User.findOne())
-                    .then(user => user.destroy())
-                    .then(assertCount(sequelize.models.UserHistory, 3));
+                    yield user.save();
+                    yield assertCount(sequelize.models.UserHistory, 2);
+                    const users = yield sequelize.models.UserHistory.findAll();
+                    yield assert.equal(users.length, 2, 'multiple entries');
+                    yield sequelize.models.User.findOne();
+                    yield user.destroy();
+                    yield assertCount(sequelize.models.UserHistory, 3);
+                });
             });
             it('onDelete: should store the previous version to the historyDB', function () {
-                return sequelize.models.User.create({ name: 'foo' })
-                    .then(assertCount(sequelize.models.UserHistory, 1))
-                    .then(user => user.destroy())
-                    .then(assertCount(sequelize.models.UserHistory, 2))
-                    .then(() => sequelize.models.UserHistory.findAll())
-                    .then(users => {
-                    assert.equal(users.length, 2, 'two entries');
+                return __awaiter(this, void 0, void 0, function* () {
+                    const user = yield sequelize.models.User.create({ name: 'foo' });
+                    yield assertCount(sequelize.models.UserHistory, 1);
+                    yield user.destroy();
+                    yield assertCount(sequelize.models.UserHistory, 2);
+                    const users = yield sequelize.models.UserHistory.findAll();
+                    yield assert.equal(users.length, 2, 'two entries');
                 });
             });
         });
         describe('transactions', function () {
             beforeEach(freshDB);
             it('revert on failed transactions', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
-                    const options = { transaction };
-                    return sequelize.models.User.create({ name: 'not foo' }, options)
-                        .then(assertCount(sequelize.models.UserHistory, 1, options))
-                        .then(user => {
-                        user.name = 'foo';
-                        return user.save(options);
-                    })
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize.transaction();
+                    const user = yield sequelize.models.User.create({ name: 'not foo' }, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 1, { transaction });
+                    user.name = 'foo';
+                    yield user.save({ transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield transaction.rollback();
+                    yield assertCount(sequelize.models.UserHistory, 0);
+                });
             });
         });
         describe('bulk update', function () {
