@@ -149,7 +149,7 @@ describe('Test sequelize-temporalize', function() {
   // tags,creations,user,events are renamed 3 times to generate 3 history data
   // 1 tag is removed and re-added to a creation to create 1 history entry in the CreationTags table
   function dataCreate() {
-    const tag = sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
+    const tag1 = sequelize.models.Tag.create({ name: 'tag01' }).then(t => {
       t.name = 'tag01 renamed';
       t.save();
       t.name = 'tag01 renamed twice';
@@ -179,7 +179,7 @@ describe('Test sequelize-temporalize', function() {
       return t;
     });
 
-    const user = sequelize.models.User.create({ name: 'user01' }).then(u => {
+    const user1 = sequelize.models.User.create({ name: 'user01' }).then(u => {
       u.name = 'user01 renamed';
       u.save();
       u.name = 'user01 renamed twice';
@@ -199,7 +199,7 @@ describe('Test sequelize-temporalize', function() {
       return u;
     });
 
-    const creation = Promise.all([user, user2])
+    const creation1 = Promise.all([user1, user2])
       .then(allU =>
         sequelize.models.Creation.create({
           name: 'creation01',
@@ -217,7 +217,7 @@ describe('Test sequelize-temporalize', function() {
         return c;
       });
 
-    const creation2 = Promise.all([user, user2])
+    const creation2 = Promise.all([user1, user2])
       .then(allU =>
         sequelize.models.Creation.create({
           name: 'creation02',
@@ -235,7 +235,7 @@ describe('Test sequelize-temporalize', function() {
         return c;
       });
 
-    const event = creation
+    const event1 = creation1
       .then(c =>
         sequelize.models.Event.create({
           name: 'event01',
@@ -269,13 +269,13 @@ describe('Test sequelize-temporalize', function() {
         return e;
       });
 
-    const creationTag1 = Promise.all([tag, creation]).then(models => {
+    const creationTag1 = Promise.all([tag1, creation1]).then(models => {
       const t = models[0];
       const c = models[1];
       return c.addTag(t);
     });
 
-    const creationTag1_rem = Promise.all([tag, creation, creationTag1]).then(
+    const creationTag1_rem = Promise.all([tag1, creation1, creationTag1]).then(
       models => {
         const t = models[0];
         const c = models[1];
@@ -284,8 +284,8 @@ describe('Test sequelize-temporalize', function() {
     );
 
     const creationTag1_rea = Promise.all([
-      tag,
-      creation,
+      tag1,
+      creation1,
       creationTag1_rem
     ]).then(models => {
       const t = models[0];
@@ -294,21 +294,21 @@ describe('Test sequelize-temporalize', function() {
       return c.addTag(t);
     });
 
-    const creationTag2 = Promise.all([tag2, creation]).then(models => {
+    const creationTag2 = Promise.all([tag2, creation1]).then(models => {
       const t = models[0];
       const c = models[1];
 
       return c.addTag(t);
     });
 
-    const creationTag3 = Promise.all([tag3, creation]).then(models => {
+    const creationTag3 = Promise.all([tag3, creation1]).then(models => {
       const t = models[0];
       const c = models[1];
 
       return c.addTag(t);
     });
 
-    const creationTag4 = Promise.all([tag, creation2]).then(models => {
+    const creationTag4 = Promise.all([tag1, creation2]).then(models => {
       const t = models[0];
       const c = models[1];
 
@@ -330,14 +330,14 @@ describe('Test sequelize-temporalize', function() {
     });
 
     return Promise.all([
-      event,
+      event1,
       event2,
-      tag,
+      tag1,
       tag2,
       tag3,
-      user,
+      user1,
       user2,
-      creation,
+      creation1,
       creation2,
       creationTag1,
       creationTag2,
