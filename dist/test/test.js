@@ -65,7 +65,7 @@ describe('Test sequelize-temporalize', function () {
         });
         User.hasMany(Creation, {
             foreignKey: 'user2',
-            as: 'updatorCreations'
+            as: 'updaterCreations'
         });
         Creation.belongsTo(User, {
             foreignKey: 'user',
@@ -401,7 +401,7 @@ describe('Test sequelize-temporalize', function () {
                     });
                     const creation = user.then(u => {
                         assert.exists(u.getCreatorCreations, 'User: getCreatorCreations does not exist');
-                        assert.exists(u.getUpdatorCreations, 'User: getUpdatorCreations does not exist');
+                        assert.exists(u.getUpdaterCreations, 'User: getUpdaterCreations does not exist');
                         return u.getCreatorCreations();
                     });
                     //Creation associations check
