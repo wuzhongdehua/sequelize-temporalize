@@ -19,7 +19,10 @@ chai.use(chai_as_promised_1.default);
 const assert = chai.assert;
 describe('Test sequelize-temporalize', function () {
     let sequelize;
-    function newDB(paranoid, options) {
+    function newDB({ options, temporalizeOptions } = {}) {
+        // Set defaults
+        options = options || {};
+        options.paranoid = options.paranoid || false;
         if (sequelize) {
             sequelize.close();
             sequelize = null;
@@ -35,21 +38,21 @@ describe('Test sequelize-temporalize', function () {
             logging: false //console.log
         });
         //Define origin models
-        const User = sequelize.define('User', { name: sequelize_1.DataTypes.TEXT }, { paranoid: paranoid || false });
+        const User = sequelize.define('User', { name: sequelize_1.DataTypes.TEXT }, options);
         const Creation = sequelize.define('Creation', {
             name: sequelize_1.DataTypes.TEXT,
             user: sequelize_1.DataTypes.INTEGER,
             user2: sequelize_1.DataTypes.INTEGER
-        }, { paranoid: paranoid || false });
-        const Tag = sequelize.define('Tag', { name: sequelize_1.DataTypes.TEXT }, { paranoid: paranoid || false });
+        }, options);
+        const Tag = sequelize.define('Tag', { name: sequelize_1.DataTypes.TEXT }, options);
         const Event = sequelize.define('Event', {
             name: sequelize_1.DataTypes.TEXT,
             creation: sequelize_1.DataTypes.INTEGER
-        }, { paranoid: paranoid || false });
+        }, options);
         const CreationTag = sequelize.define('CreationTag', {
             creation: sequelize_1.DataTypes.INTEGER,
             tag: sequelize_1.DataTypes.INTEGER
-        }, { paranoid: paranoid || false });
+        }, options);
         //Associate models
         //1.* with 2 association to same table
         User.hasMany(Creation, {
@@ -90,27 +93,27 @@ describe('Test sequelize-temporalize', function () {
         index_1.Temporalize({
             model: User,
             sequelize,
-            temporalizeOptions: options
+            temporalizeOptions
         });
         index_1.Temporalize({
             model: Creation,
             sequelize,
-            temporalizeOptions: options
+            temporalizeOptions
         });
         index_1.Temporalize({
             model: Tag,
             sequelize,
-            temporalizeOptions: options
+            temporalizeOptions
         });
         index_1.Temporalize({
             model: Event,
             sequelize,
-            temporalizeOptions: options
+            temporalizeOptions
         });
         index_1.Temporalize({
             model: CreationTag,
             sequelize,
-            temporalizeOptions: options
+            temporalizeOptions
         });
         return sequelize.sync({ force: true });
     }
@@ -289,11 +292,14 @@ describe('Test sequelize-temporalize', function () {
         ]);
     }
     function freshDB() {
-        return newDB();
+        return newDB({ options: { paranoid: false, timestamps: false } });
     }
     function freshDBWithSuffixEndingWithT() {
-        return newDB(false, {
-            modelSuffix: '_Hist'
+        return newDB({
+            options: { paranoid: false },
+            temporalizeOptions: {
+                modelSuffix: '_Hist'
+            }
         });
     }
     function assertCount(modelHistory, n, options) {

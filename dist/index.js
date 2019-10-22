@@ -135,7 +135,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     modelHistoryOutput.originModel = model;
     function transformToHistoryEntry(instance, options, { destroyOperation, restoreOperation }) {
         const dataValues = lodash_1.default.cloneDeep(instance.dataValues);
-        dataValues.archivedAt = instance.dataValues.updatedAt;
+        dataValues.archivedAt = instance.dataValues.updatedAt || Date.now(); // Date.now() if options.timestamps = false
         if (restoreOperation) {
             dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
         }

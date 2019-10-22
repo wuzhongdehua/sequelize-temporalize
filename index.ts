@@ -173,7 +173,7 @@ export function Temporalize({
     }: { destroyOperation?: Boolean; restoreOperation?: Boolean }
   ) {
     const dataValues = _.cloneDeep(instance.dataValues);
-    dataValues.archivedAt = instance.dataValues.updatedAt;
+    dataValues.archivedAt = instance.dataValues.updatedAt || Date.now(); // Date.now() if options.timestamps = false
     if (restoreOperation) {
       dataValues.archivedAt = Date.now(); // There may be a better time to use, but we are yet to find it
     }
