@@ -157,13 +157,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                 destroyOperation,
                 restoreOperation
             });
-            const historyRecord = modelHistoryOutput.create(dataValues, {
+            const historyRecordPromise = modelHistoryOutput.create(dataValues, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
                     : null
             });
             if (temporalizeOptions.blocking) {
-                return historyRecord;
+                return historyRecordPromise;
             }
         });
     }
@@ -175,13 +175,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                     restoreOperation
                 });
             });
-            const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
+            const historyRecordPromise = modelHistoryOutput.bulkCreate(dataValuesArr, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
                     : null
             });
             if (temporalizeOptions.blocking) {
-                return historyRecord;
+                return historyRecordPromise;
             }
         });
     }
