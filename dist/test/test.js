@@ -234,7 +234,21 @@ describe('Test sequelize-temporalize', function () {
             });
             const creationTag1 = yield creation1.addTag(tag1);
             const creationTag1_rem = yield creation1.removeTag(tag1);
-            const creationTag1_rea = yield creation1.addTag(tag1);
+            const creationTags = yield sequelize.models.CreationTag.findAll({
+                paranoid: false
+            });
+            if (creationTags.length === 0) {
+                // paranoid: false is being used, so the tag deletion is a hard delete
+                const creationTag1_rea = yield creation1.addTag(tag1);
+            }
+            else if (creationTags.length === 1) {
+                // paranoid: true is being used so we just have to un-delete
+                const deletedTag = yield sequelize.models.CreationTag.findAll({
+                    paranoid: false
+                });
+                deletedTag[0].setDataValue('deletedAt', null);
+                yield deletedTag[0].save();
+            }
             const creationTag2 = yield creation1.addTag(tag2);
             const creationTag3 = yield creation1.addTag(tag3);
             const creationTag4 = yield creation2.addTag(tag1);
@@ -243,7 +257,7 @@ describe('Test sequelize-temporalize', function () {
         });
     }
     function freshDB() {
-        return newDB({ options: { paranoid: false, timestamps: false } });
+        return newDB({ options: { paranoid: true, timestamps: true } });
     }
     function freshDBWithSuffixEndingWithT() {
         return newDB({
@@ -253,8 +267,8 @@ describe('Test sequelize-temporalize', function () {
             }
         });
     }
-    // function assertCount(modelHistory, n, options?) {
-    //   modelHistory.count(options).then(count => {
+    // async function assertCount(modelHistory, n, options?) {
+    //   await modelHistory.count(options).then(count => {
     //     assert.equal(count, n, 'history entries ' + modelHistory.name);
     //   });
     // }
