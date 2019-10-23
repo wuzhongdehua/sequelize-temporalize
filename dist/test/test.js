@@ -271,15 +271,6 @@ describe('Test sequelize-temporalize', function () {
             yield assert.equal(count, n, 'history entries ' + modelHistory.name);
         });
     }
-    // function assertCount(modelHistory, n, options?) {
-    //   // wrapped, chainable promise
-    //   return function(obj) {
-    //     return modelHistory.count(options).then(count => {
-    //       assert.equal(count, n, 'history entries ' + modelHistory.name);
-    //       return obj;
-    //     });
-    //   };
-    // }
     describe('paranoid=false, timestamps=true', function () {
         test({ options: { paranoid: false, timestamps: true } });
     });
