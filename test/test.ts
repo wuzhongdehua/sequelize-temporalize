@@ -571,13 +571,12 @@ describe('Test sequelize-temporalize', function() {
       });
 
       it('should revert under transactions', async function() {
-        const transaction = await sequelize;
-        const options = { transaction };
+        const transaction = await sequelize.transaction();
         await sequelize.models.User.bulkCreate(
           [{ name: 'foo1' }, { name: 'foo2' }],
-          options
+          { transaction }
         );
-        await assertCount(sequelize.models.UserHistory, 2, options);
+        await assertCount(sequelize.models.UserHistory, 2, { transaction });
         await sequelize.models.User.update(
           { name: 'updated-foo' },
           {
@@ -585,7 +584,7 @@ describe('Test sequelize-temporalize', function() {
             transaction
           }
         );
-        await assertCount(sequelize.models.UserHistory, 4, options);
+        await assertCount(sequelize.models.UserHistory, 4, { transaction });
         await transaction.rollback();
         await assertCount(sequelize.models.UserHistory, 0);
       });

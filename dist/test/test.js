@@ -470,15 +470,14 @@ describe('Test sequelize-temporalize', function () {
             });
             it('should revert under transactions', function () {
                 return __awaiter(this, void 0, void 0, function* () {
-                    const transaction = yield sequelize;
-                    const options = { transaction };
-                    yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options);
-                    yield assertCount(sequelize.models.UserHistory, 2, options);
+                    const transaction = yield sequelize.transaction();
+                    yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
                     yield sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
                         transaction
                     });
-                    yield assertCount(sequelize.models.UserHistory, 4, options);
+                    yield assertCount(sequelize.models.UserHistory, 4, { transaction });
                     yield transaction.rollback();
                     yield assertCount(sequelize.models.UserHistory, 0);
                 });
