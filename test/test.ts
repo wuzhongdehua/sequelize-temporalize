@@ -11,16 +11,15 @@ const assert = chai.assert;
 // Test timestamps: true and timestamps: false
 // Test logEventId and logTransactionId
 
+interface DbOptions {
+  options?: { paranoid?: boolean; timestamps?: boolean };
+  temporalizeOptions?;
+}
+
 describe('Test sequelize-temporalize', function() {
   let sequelize;
 
-  function newDB({
-    options,
-    temporalizeOptions
-  }: {
-    options?: { paranoid?: boolean; timestamps?: boolean };
-    temporalizeOptions?;
-  } = {}) {
+  function newDB({ options, temporalizeOptions }: DbOptions = {}) {
     // Set defaults
     options = options || {};
     options.paranoid = options.paranoid || false;
@@ -287,8 +286,10 @@ describe('Test sequelize-temporalize', function() {
     const creationTag6 = await creation2.addTag(tag3);
   }
 
-  function freshDB() {
-    return newDB({ options: { paranoid: false, timestamps: true } });
+  function freshDB(dbOptions: DbOptions) {
+    return function() {
+      return newDB(dbOptions);
+    };
   }
 
   function freshDBWithSuffixEndingWithT() {
@@ -315,11 +316,19 @@ describe('Test sequelize-temporalize', function() {
   //   };
   // }
 
-  test();
+  describe('paranoid=false, timestamps=true', function() {
+    test({ options: { paranoid: false, timestamps: true } });
+  });
+  describe('paranoid=false, timestamps=false', function() {
+    test({ options: { paranoid: false, timestamps: false } });
+  });
+  describe('paranoid=true', function() {
+    test({ options: { paranoid: true } });
+  });
 
-  function test() {
+  function test(dbOptions: DbOptions) {
     describe('DB Tests', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
 
       it('onUpdate/onDestroy: should save to the historyDB 1', async function() {
         const user = await sequelize.models.User.create();
@@ -394,7 +403,7 @@ describe('Test sequelize-temporalize', function() {
 
     describe('Association Tests', function() {
       describe('test there are no history association', function() {
-        beforeEach(freshDB);
+        beforeEach(freshDB(dbOptions));
 
         it('Should have relations for origin models but not for history models', async function() {
           await dataCreate();
@@ -497,7 +506,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('hooks', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
       it('onCreate: should store the new version in history db', async function() {
         await sequelize.models.User.create({ name: 'test' });
         await assertCount(sequelize.models.UserHistory, 1);
@@ -537,7 +546,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('transactions', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
 
       it('revert on failed transactions', async function() {
         const transaction = await sequelize.transaction();
@@ -555,7 +564,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('bulk update', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
 
       it('should archive every entry', async function() {
         await sequelize.models.User.bulkCreate([
@@ -591,7 +600,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('bulk destroy/truncate', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
       it('should archive every entry', async function() {
         await sequelize.models.User.bulkCreate([
           { name: 'foo1' },
@@ -624,7 +633,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('read-only ', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
 
       it('should forbid updates', function() {
         const userUpdate = sequelize.models.UserHistory.create({
@@ -645,7 +654,7 @@ describe('Test sequelize-temporalize', function() {
     });
 
     describe('interference with the original model', function() {
-      beforeEach(freshDB);
+      beforeEach(freshDB(dbOptions));
 
       it("shouldn't delete instance methods", async function() {
         const Fruit = sequelize.define('Fruit', {
