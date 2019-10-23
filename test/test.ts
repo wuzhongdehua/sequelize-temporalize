@@ -288,7 +288,7 @@ describe('Test sequelize-temporalize', function() {
   }
 
   function freshDB() {
-    return newDB({ options: { paranoid: true, timestamps: true } });
+    return newDB({ options: { paranoid: false, timestamps: true } });
   }
 
   function freshDBWithSuffixEndingWithT() {
@@ -300,21 +300,20 @@ describe('Test sequelize-temporalize', function() {
     });
   }
 
-  // async function assertCount(modelHistory, n, options?) {
-  //   await modelHistory.count(options).then(count => {
-  //     assert.equal(count, n, 'history entries ' + modelHistory.name);
-  //   });
-  // }
-
-  function assertCount(modelHistory, n, options?) {
-    // wrapped, chainable promise
-    return function(obj) {
-      return modelHistory.count(options).then(count => {
-        assert.equal(count, n, 'history entries ' + modelHistory.name);
-        return obj;
-      });
-    };
+  async function assertCount(modelHistory, n, options?) {
+    const count = await modelHistory.count(options);
+    await assert.equal(count, n, 'history entries ' + modelHistory.name);
   }
+
+  // function assertCount(modelHistory, n, options?) {
+  //   // wrapped, chainable promise
+  //   return function(obj) {
+  //     return modelHistory.count(options).then(count => {
+  //       assert.equal(count, n, 'history entries ' + modelHistory.name);
+  //       return obj;
+  //     });
+  //   };
+  // }
 
   test();
 
@@ -363,7 +362,9 @@ describe('Test sequelize-temporalize', function() {
           { transaction }
         );
         await assertCount(sequelize.models.UserHistory, 0);
-        await assertCount(sequelize.models.UserHistory, 2, { transaction });
+        await assertCount(sequelize.models.UserHistory, 2, {
+          transaction
+        });
         await sequelize.models.User.update(
           { name: 'updated-foo' },
           {
@@ -569,29 +570,24 @@ describe('Test sequelize-temporalize', function() {
         await assertCount(sequelize.models.UserHistory, 4);
       });
 
-      it('should revert under transactions', function() {
-        return sequelize
-          .transaction()
-          .then(transaction => {
-            const options = { transaction };
-            return sequelize.models.User.bulkCreate(
-              [{ name: 'foo1' }, { name: 'foo2' }],
-              options
-            )
-              .then(assertCount(sequelize.models.UserHistory, 2, options))
-              .then(() =>
-                sequelize.models.User.update(
-                  { name: 'updated-foo' },
-                  {
-                    where: {},
-                    transaction
-                  }
-                )
-              )
-              .then(assertCount(sequelize.models.UserHistory, 4, options))
-              .then(() => transaction.rollback());
-          })
-          .then(assertCount(sequelize.models.UserHistory, 0));
+      it('should revert under transactions', async function() {
+        const transaction = await sequelize;
+        const options = { transaction };
+        await sequelize.models.User.bulkCreate(
+          [{ name: 'foo1' }, { name: 'foo2' }],
+          options
+        );
+        await assertCount(sequelize.models.UserHistory, 2, options);
+        await sequelize.models.User.update(
+          { name: 'updated-foo' },
+          {
+            where: {},
+            transaction
+          }
+        );
+        await assertCount(sequelize.models.UserHistory, 4, options);
+        await transaction.rollback();
+        await assertCount(sequelize.models.UserHistory, 0);
       });
     });
 

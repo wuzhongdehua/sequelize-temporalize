@@ -257,7 +257,7 @@ describe('Test sequelize-temporalize', function () {
         });
     }
     function freshDB() {
-        return newDB({ options: { paranoid: true, timestamps: true } });
+        return newDB({ options: { paranoid: false, timestamps: true } });
     }
     function freshDBWithSuffixEndingWithT() {
         return newDB({
@@ -267,20 +267,21 @@ describe('Test sequelize-temporalize', function () {
             }
         });
     }
-    // async function assertCount(modelHistory, n, options?) {
-    //   await modelHistory.count(options).then(count => {
-    //     assert.equal(count, n, 'history entries ' + modelHistory.name);
-    //   });
-    // }
     function assertCount(modelHistory, n, options) {
-        // wrapped, chainable promise
-        return function (obj) {
-            return modelHistory.count(options).then(count => {
-                assert.equal(count, n, 'history entries ' + modelHistory.name);
-                return obj;
-            });
-        };
+        return __awaiter(this, void 0, void 0, function* () {
+            const count = yield modelHistory.count(options);
+            yield assert.equal(count, n, 'history entries ' + modelHistory.name);
+        });
     }
+    // function assertCount(modelHistory, n, options?) {
+    //   // wrapped, chainable promise
+    //   return function(obj) {
+    //     return modelHistory.count(options).then(count => {
+    //       assert.equal(count, n, 'history entries ' + modelHistory.name);
+    //       return obj;
+    //     });
+    //   };
+    // }
     test();
     function test() {
         describe('DB Tests', function () {
@@ -324,7 +325,9 @@ describe('Test sequelize-temporalize', function () {
                     const transaction = yield sequelize.transaction();
                     yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], { transaction });
                     yield assertCount(sequelize.models.UserHistory, 0);
-                    yield assertCount(sequelize.models.UserHistory, 2, { transaction });
+                    yield assertCount(sequelize.models.UserHistory, 2, {
+                        transaction
+                    });
                     yield sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
                         transaction
@@ -466,20 +469,19 @@ describe('Test sequelize-temporalize', function () {
                 });
             });
             it('should revert under transactions', function () {
-                return sequelize
-                    .transaction()
-                    .then(transaction => {
+                return __awaiter(this, void 0, void 0, function* () {
+                    const transaction = yield sequelize;
                     const options = { transaction };
-                    return sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options)
-                        .then(assertCount(sequelize.models.UserHistory, 2, options))
-                        .then(() => sequelize.models.User.update({ name: 'updated-foo' }, {
+                    yield sequelize.models.User.bulkCreate([{ name: 'foo1' }, { name: 'foo2' }], options);
+                    yield assertCount(sequelize.models.UserHistory, 2, options);
+                    yield sequelize.models.User.update({ name: 'updated-foo' }, {
                         where: {},
                         transaction
-                    }))
-                        .then(assertCount(sequelize.models.UserHistory, 4, options))
-                        .then(() => transaction.rollback());
-                })
-                    .then(assertCount(sequelize.models.UserHistory, 0));
+                    });
+                    yield assertCount(sequelize.models.UserHistory, 4, options);
+                    yield transaction.rollback();
+                    yield assertCount(sequelize.models.UserHistory, 0);
+                });
             });
         });
         describe('bulk destroy/truncate', function () {
