@@ -34,13 +34,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     const historyName = model.name + temporalizeOptions.modelSuffix;
     const transactionIdAttr = temporalizeOptions.logTransactionId
         ? {
-            type: Sequelize.DataTypes.UUID,
+            type: Sequelize.STRING,
             allowNull: true
         }
         : undefined;
     const eventIdAttr = temporalizeOptions.logEventId
         ? {
-            type: Sequelize.DataTypes.UUID,
+            type: Sequelize.STRING,
             allowNull: true
         }
         : undefined;
@@ -56,6 +56,10 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             type: Sequelize.DATE,
             allowNull: false,
             defaultValue: Sequelize.NOW
+        },
+        deletion: {
+            type: Sequelize.BOOLEAN,
+            allowNull: true
         },
         transactionId: transactionIdAttr,
         [temporalizeOptions.eventIdColumnName]: eventIdAttr
@@ -142,6 +146,7 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
         if (destroyOperation) {
             // If paranoid is true, use the deleted value
             dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
+            dataValues.deletion = true;
         }
         if (temporalizeOptions.logTransactionId && options.transaction) {
             dataValues.transactionId = getTransactionId(options.transaction);
@@ -157,13 +162,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                 destroyOperation,
                 restoreOperation
             });
-            const historyRecord = modelHistoryOutput.create(dataValues, {
+            const historyRecordPromise = modelHistoryOutput.create(dataValues, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
                     : null
             });
             if (temporalizeOptions.blocking) {
-                return historyRecord;
+                return historyRecordPromise;
             }
         });
     }
@@ -175,13 +180,13 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
                     restoreOperation
                 });
             });
-            const historyRecord = modelHistoryOutput.bulkCreate(dataValuesArr, {
+            const historyRecordPromise = modelHistoryOutput.bulkCreate(dataValuesArr, {
                 transaction: temporalizeOptions.allowTransactions
                     ? options.transaction
                     : null
             });
             if (temporalizeOptions.blocking) {
-                return historyRecord;
+                return historyRecordPromise;
             }
         });
     }
@@ -244,23 +249,6 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
     });
     const beforeBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
         if (!options.individualHooks) {
-            if (options.paranoid === true) {
-                yield storeBulkPrimaryKeys(options);
-            }
-            else {
-                const instances = yield model.findAll({
-                    where: options.where,
-                    transaction: options.transaction,
-                    paranoid: false
-                });
-                return createHistoryEntryBulk(instances, options, {
-                    destroyOperation: true
-                }); // Set date is implied by options.paranoid === false
-            }
-        }
-    });
-    const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () {
-        if (!options.individualHooks) {
             const instances = yield model.findAll({
                 where: options.where,
                 transaction: options.transaction,
@@ -268,9 +256,10 @@ function Temporalize({ model, modelHistory, sequelize, temporalizeOptions }) {
             });
             return createHistoryEntryBulk(instances, options, {
                 destroyOperation: true
-            });
+            }); // Set date is implied by options.paranoid === false
         }
     });
+    const afterBulkDestroyHook = (options) => __awaiter(this, void 0, void 0, function* () { });
     const afterRestoreHook = (instance, options) => __awaiter(this, void 0, void 0, function* () {
         return createHistoryEntry(instance, options, { restoreOperation: true });
     });

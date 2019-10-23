@@ -77,6 +77,7 @@ export class UserHistory extends User {
   public readonly archivedAt!: Date;
   public readonly transactionId!: string; // necessary if logTransactionId: true
   public readonly eventId!: string;
+  public readonly deletion!: boolean;
 }
 // initialize the User model
 User.init({
