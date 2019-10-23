@@ -70,6 +70,10 @@ export function Temporalize({
       allowNull: false,
       defaultValue: Sequelize.NOW
     },
+    deletion: {
+      type: Sequelize.BOOLEAN,
+      allowNull: true
+    },
     transactionId: transactionIdAttr,
     [temporalizeOptions.eventIdColumnName]: eventIdAttr
   };
@@ -180,6 +184,7 @@ export function Temporalize({
     if (destroyOperation) {
       // If paranoid is true, use the deleted value
       dataValues.archivedAt = instance.dataValues.deletedAt || Date.now();
+      dataValues.deletion = true;
     }
     if (temporalizeOptions.logTransactionId && options.transaction) {
       dataValues.transactionId = getTransactionId(options.transaction);
@@ -298,23 +303,6 @@ export function Temporalize({
 
   const beforeBulkDestroyHook = async options => {
     if (!options.individualHooks) {
-      if (options.paranoid === true) {
-        await storeBulkPrimaryKeys(options);
-      } else {
-        const instances = await model.findAll({
-          where: options.where,
-          transaction: options.transaction,
-          paranoid: false
-        });
-        return createHistoryEntryBulk(instances, options, {
-          destroyOperation: true
-        }); // Set date is implied by options.paranoid === false
-      }
-    }
-  };
-
-  const afterBulkDestroyHook = async options => {
-    if (!options.individualHooks) {
       const instances = await model.findAll({
         where: options.where,
         transaction: options.transaction,
@@ -322,9 +310,11 @@ export function Temporalize({
       });
       return createHistoryEntryBulk(instances, options, {
         destroyOperation: true
-      });
+      }); // Set date is implied by options.paranoid === false
     }
   };
+
+  const afterBulkDestroyHook = async options => {};
 
   const afterRestoreHook = async (instance, options) => {
     return createHistoryEntry(instance, options, { restoreOperation: true });
