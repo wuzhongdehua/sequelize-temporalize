@@ -291,9 +291,7 @@ export function Temporalize({
         transaction: options.transaction,
         paranoid: options.paranoid
       });
-      return createHistoryEntryBulk(instances, options, {
-        destroyOperation: true
-      });
+      return createHistoryEntryBulk(instances, options, {});
     }
   };
 
