@@ -253,15 +253,9 @@ export function Temporalize({
     );
   }
 
-  const afterCreateHook = async function(obj, options) {
-    return model
-      .findOne({
-        where: { id: obj.id },
-        transaction: options.transaction,
-        paranoid: false
-      })
-      .then(function(instance) {
-        return createHistoryEntry(instance, options, {});
+  const afterCreateHook = function (obj, options) {
+      return __awaiter(this, void 0, void 0, function* () {
+          return createHistoryEntry(obj, options, {})
       });
   };
 
